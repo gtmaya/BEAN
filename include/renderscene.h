@@ -52,8 +52,7 @@ class RenderScene
     glm::mat4 m_cube;
     std::array<ObjHandler, 1> m_arrObj;
     ngl::Obj* m_peepMesh;
-    int m_numPeeps = crowdsim::NumPeeps;
-    std::array<ObjHandler, crowdsim::NumPeeps> m_arrPeeps;
+    CrowdSim* m_crowdSim;
     std::array<glm::vec2, 16> m_sampleVector
     {
       glm::vec2(0.0f, -0.333333333333f),
@@ -120,7 +119,6 @@ class RenderScene
     void setAAMethod(int _method);
     void resetTAA();
     void increaseFeedback(float _delta);
-    void setPeepData(std::array<ObjHandler, crowdsim::NumPeeps> _peepData);
     enum m_aaMethod{taa, msaa, none};
 
   private:

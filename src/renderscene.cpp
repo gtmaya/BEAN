@@ -10,8 +10,10 @@
 
 RenderScene::RenderScene() : m_width(1),
                              m_height(1),
-                             m_ratio(1.0f)
+                             m_ratio(1.0f),
+                             m_crowdSim (new CrowdSim)
 {
+  m_crowdSim->calculateRoutes(false);
   m_startTime = std::chrono::high_resolution_clock::now();
   m_prevFrameTime = std::chrono::high_resolution_clock::now();
 }
@@ -37,25 +39,8 @@ void RenderScene::initGL() noexcept
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
 
-  m_arrObj[0].m_mesh = new ngl::Obj("models/map.obj");
-  m_arrObj[0].m_shaderProps.m_diffuseTex = taa_dirt;
-  m_arrObj[0].m_shaderProps.m_diffuseWeight = 0.25f;
-  m_arrObj[0].m_shaderProps.m_specularWeight = 0.25f;
-  m_arrObj[0].m_shaderProps.m_roughness = 1.f;
-
-  m_peepMesh = new ngl::Obj("models/torus.obj");
+  m_peepMesh = new ngl::Obj("models/peepmesh.obj");
   m_peepMesh->createVAO();
-
-  for (size_t i = 0; i < m_arrPeeps.size(); i++)
-  {
-    m_arrPeeps[i].m_mesh = m_peepMesh;
-    m_arrPeeps[i].m_position = glm::vec3(i, 0, 0);
-  }
-
-  for (auto &i : m_arrObj)
-  {
-    i.m_mesh->createVAO();
-  }
 
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
 
@@ -102,6 +87,7 @@ void RenderScene::initGL() noexcept
 
 void RenderScene::paintGL() noexcept
 {
+  m_crowdSim->update();
   static int count = 0;
   //Common stuff
   if (m_isFBODirty)
@@ -295,13 +281,13 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     glUniform2f(glGetUniformLocation(shaderID, "jitter"), 0.f, 0.f);
   }
 
-  for (auto &obj : m_arrPeeps)
+  for (auto &obj : m_crowdSim->getPeeps())
   {
     glm::mat4 M, MV, MVP;
     glm::mat3 N;
     M = glm::mat4(1.f);
     M = glm::rotate(M, glm::pi<float>() * 0.25f, {0.f, 1.f, 0.f});
-    M = glm::translate(M, obj.m_position);
+    M = glm::translate(M, obj.getPosition());
     MV = m_view * M;
     MVP = m_VP * M;
     //Remove the jitter
@@ -319,23 +305,23 @@ void RenderScene::renderScene(size_t _activeAAFBO)
                        1,
                        true,
                        glm::value_ptr(N));
-    glUniform1f(glGetUniformLocation(shaderID, "roughness"), obj.m_shaderProps.m_roughness);
-    glUniform1f(glGetUniformLocation(shaderID, "metallic"), obj.m_shaderProps.m_metallic);
-    glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), obj.m_shaderProps.m_diffuseWeight);
-    glUniform1f(glGetUniformLocation(shaderID, "specAmount"), obj.m_shaderProps.m_specularWeight);
+    glUniform1f(glGetUniformLocation(shaderID, "roughness"), obj.getShaderProps()->m_roughness);
+    glUniform1f(glGetUniformLocation(shaderID, "metallic"), obj.getShaderProps()->m_metallic);
+    glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), obj.getShaderProps()->m_diffuseWeight);
+    glUniform1f(glGetUniformLocation(shaderID, "specAmount"), obj.getShaderProps()->m_specularWeight);
     glUniform3fv(glGetUniformLocation(shaderID, "materialDiff"),
                  1,
-                 glm::value_ptr(obj.m_shaderProps.m_diffuseColour));
+                 glm::value_ptr(obj.getShaderProps()->m_diffuseColour));
     glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
                  1,
-                 glm::value_ptr(obj.m_shaderProps.m_specularColour));
-    glUniform1f(glGetUniformLocation(shaderID, "alpha"), obj.m_shaderProps.m_alpha);
-    if (obj.m_shaderProps.m_diffuseTex == taa_checkerboard)
+                 glm::value_ptr(obj.getShaderProps()->m_specularColour));
+    glUniform1f(glGetUniformLocation(shaderID, "alpha"), obj.getShaderProps()->m_alpha);
+    if (obj.getShaderProps()->m_diffuseTex == taa_checkerboard)
     {
       glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 1);
       glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), taa_checkerboard);
     }
-    else if (obj.m_shaderProps.m_diffuseTex == taa_dirt)
+    else if (obj.getShaderProps()->m_diffuseTex == taa_dirt)
     {
       glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 1);
       glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), taa_dirt);
@@ -344,7 +330,7 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     {
       glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
     }
-    obj.m_mesh->draw();
+    m_peepMesh->draw();
   }
   m_VP = m_proj * m_view;
 }
@@ -497,7 +483,7 @@ void RenderScene::initTexture(const GLuint& texUnit, GLuint &texId, const char *
 
 void RenderScene::updateJitter()
 {
-  for (size_t i = 0; i < m_jitterVector.size(); i++){m_jitterVector[i] = m_sampleVector[i] * m_pixelSizeScreenSpace * 0.9f; std::cout<<glm::to_string(m_jitterVector[i])<<'\n';}
+  for (size_t i = 0; i < m_jitterVector.size(); i++){m_jitterVector[i] = m_sampleVector[i] * m_pixelSizeScreenSpace * 0.9f; /*std::cout<<glm::to_string(m_jitterVector[i])<<'\n';*/}
 }
 
 void RenderScene::increaseFeedback(float _delta)
@@ -506,12 +492,4 @@ void RenderScene::increaseFeedback(float _delta)
   if (m_feedback > 1.f) {m_feedback = 1.f;}
   if (m_feedback < 0.f) {m_feedback = 0.f;}
   std::cout<<"Keeping "<<m_feedback * 100.f<<"% of the current frame and "<<(1 - m_feedback) * 100.f<<"% of the previous frame\n";
-}
-
-void RenderScene::setPeepData(std::array<ObjHandler, crowdsim::NumPeeps> _peepData)
-{
-  for (size_t i = 0; i < crowdsim::NumPeeps; i++)
-  {
-    m_arrPeeps[i].m_position = _peepData[i].m_position;
-  }
 }
