@@ -6,8 +6,6 @@
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "objhandler.h"
 #include "shaderhandler.h"
 #include "crowdsim.h"
 
@@ -50,7 +48,6 @@ class RenderScene
     glm::mat4 m_VP;
     glm::mat4 m_lastVP;
     glm::mat4 m_cube;
-    std::array<ObjHandler, 1> m_arrObj;
     ngl::Obj* m_peepMesh;
     CrowdSim* m_crowdSim;
     std::array<glm::vec2, 16> m_sampleVector
