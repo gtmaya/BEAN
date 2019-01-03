@@ -20,10 +20,63 @@ std::array<Peep, CrowdSim::numPeeps> CrowdSim::initPeeps()
 
 glm::ivec2 CrowdSim::getRandomPoint()
 {
-  return {int((float(std::rand()) / float(RAND_MAX)) * 254 + 1), int((float(std::rand()) / float(RAND_MAX)) * 254 + 1)};
+  return {int((float(std::rand()) / float(RAND_MAX)) * 128 + 8), int((float(std::rand()) / float(RAND_MAX)) * 128 + 8)};
 }
 
-//CURRENTLY
+glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const
+{
+  pathStorage::singleFlow flow = m_paths.allFlows[section][destIndex];
+  glm::vec2 distFromTileCentre {fmod(currentPosition.x, 1.f), fmod(currentPosition.y, 1.f)};
+  distFromTileCentre.x -= 0.5f;
+  distFromTileCentre.y -= 0.5f;
+  float vHMix = (std::abs(distFromTileCentre.x) - std::abs(distFromTileCentre.y)) + 0.5;
+  glm::vec2 interpolatedVelocity;
+  glm::vec2 thisTileVelocity = flow[currentIndex];
+  if (distFromTileCentre.x > 0.f)
+  {
+    glm::vec2 rightSample = {0.f, 0.f};
+    if (currentIndex % 8 != 7) {rightSample = flow[currentIndex + 1];}
+    if (distFromTileCentre.y > 0.f)
+    {
+      glm::vec2 topSample = {0.f, 0.f};
+      if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, distFromTileCentre.y);
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, distFromTileCentre.x);
+      interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
+    }
+    else
+    {
+      glm::vec2 bottomSample = {0.f, 0.f};
+      if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, distFromTileCentre.y);
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, distFromTileCentre.x);
+      interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
+    }
+  }
+  else
+  {
+    glm::vec2 leftSample = {0.f, 0.f};
+    if (currentIndex % 8 != 0) {leftSample = flow[currentIndex - 1];}
+    if (distFromTileCentre.y > 0.f)
+    {
+      glm::vec2 topSample = {0.f, 0.f};
+      if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, distFromTileCentre.y);
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, distFromTileCentre.x);
+      interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
+    }
+    else
+    {
+      glm::vec2 bottomSample = {0.f, 0.f};
+      if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, distFromTileCentre.y);
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, distFromTileCentre.x);
+      interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
+    }
+  }
+  return interpolatedVelocity;
+}
+
 void CrowdSim::update()
 {
   for (size_t i = 0; i < numPeeps; i++)
@@ -34,7 +87,7 @@ void CrowdSim::update()
       glm::ivec2 dest = getRandomPoint();
       m_arrPeeps[i].setPath(getPath(m_arrPeeps[i].getGridPosition(), dest), dest);
     }
-    glm::vec2 x = m_paths.allFlows[m_arrPeeps[i].getCurrentSection()][m_arrPeeps[i].getLocalGoalIndex()][convertVec2ToIndex(m_arrPeeps[i].getGridPosition())];
+    glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
     m_arrPeeps[i].setVelocity(x);
     m_arrPeeps[i].update();
   }

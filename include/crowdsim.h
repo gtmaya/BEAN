@@ -91,6 +91,7 @@ class CrowdSim
     int convertVec2ToIndex(glm::ivec2 vec);
     Path getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal);
     glm::ivec2 getRandomPoint();
+    glm::vec2 interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const;
 };
 
 #endif
