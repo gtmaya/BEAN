@@ -7,10 +7,10 @@ int Peep::temp = 0;
 Peep::Peep() : m_position({0.f, 0.f}),
   m_shaderProps (new ShaderProps({1.f, 1.f, 1.f},
                                  {1.f, 1.f, 1.f},
-                                 0.5f,
+                                 1.f,
+                                 0.1f,
+                                 1.f,
                                  0.f,
-                                 1.f,
-                                 1.f,
                                  1.f,
                                  0))
 {
@@ -51,16 +51,43 @@ bool Peep::needsPath() const
   return !m_hasPath;
 }
 
-void Peep::setPath(Path p)
+void Peep::setPath(Path p, glm::ivec2 destTile)
 {
   m_path = p;
   m_hasPath = true;
-  m_currentGoalIndex = p.pairs[0][1];
-  m_currentSection = p.sections[0];
-  m_destinationIndex = p.pairs.back()[1];
+  m_currentGoalIndex = p.pairs.back()[1];
+  m_currentSection = p.sections.back();
+  m_destinationIndex = p.pairs[0][1];
+  m_destinationTile = destTile;
 }
 
 void Peep::pathComplete()
 {
   m_hasPath = false;
+}
+
+int Peep::getDestinationIndex() const
+{
+  return m_destinationIndex;
+}
+
+int Peep::getCurrentSection() const
+{
+  return m_currentSection;
+}
+
+int Peep::getLocalGoalIndex() const
+{
+  return m_currentGoalIndex;
+}
+
+void Peep::setVelocity(glm::vec2 velocity)
+{
+  m_velocity.x = velocity.x * 0.01f;
+  m_velocity.y = velocity.y * 0.01f;
+}
+
+glm::ivec2 Peep::getDestinationTile() const
+{
+  return m_destinationTile;
 }

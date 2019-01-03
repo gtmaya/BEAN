@@ -49,6 +49,7 @@ class RenderScene
     glm::mat4 m_lastVP;
     glm::mat4 m_cube;
     ngl::Obj* m_peepMesh;
+    ngl::Obj* m_floorMesh;
     CrowdSim* m_crowdSim;
     std::array<glm::vec2, 16> m_sampleVector
     {

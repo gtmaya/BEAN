@@ -27,12 +27,18 @@ class Peep
   public:
     glm::vec3 getPosition() const;
     glm::ivec2 getGridPosition() const;
+    glm::ivec2 getDestinationTile() const;
     ShaderProps* getShaderProps() const;
     Peep();
     void update();
     bool needsPath() const;
-    void setPath(Path p);
+    void setPath(Path p, glm::ivec2 destTile);
     void pathComplete();
+    int getDestinationIndex() const;
+    int getCurrentSection() const;
+    int getLocalGoalIndex() const;
+    void setVelocity(glm::vec2 velocity);
+
 };
 
 #endif

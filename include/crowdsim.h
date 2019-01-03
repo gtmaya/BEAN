@@ -17,7 +17,7 @@ class CrowdSim
     CrowdSim();
     void update();
     void calculateRoutes(bool printFlag);
-    enum crowdsimEnum {numPeeps = 2500};
+    enum crowdsimEnum {numPeeps = 10000};
     std::array<Peep, numPeeps> getPeeps() const;
   private:
     std::array<Peep, numPeeps> m_arrPeeps;
@@ -60,7 +60,7 @@ class CrowdSim
     static int m_junctionCounter;
     struct pathStorage
     {
-      typedef std::array<int, 64> singleFlow;
+      typedef std::array<glm::vec2, 64> singleFlow;
       typedef std::array<singleFlow, 64> sectionFlow;
       typedef std::vector<sectionFlow> allFlow;
       typedef std::array<std::array<std::vector<node>, 64>, 1024> setNodes;

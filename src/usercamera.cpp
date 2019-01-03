@@ -1,8 +1,8 @@
 #include "usercamera.h"
 #include <glm/gtx/string_cast.hpp>
 
-UserCamera::UserCamera() : m_position (0.f, 0.f, 0.f),
-                           m_rotation (0.f, 0.f),
+UserCamera::UserCamera() : m_position (127.5f, 320.f, 127.5f),
+                           m_rotation (glm::pi<float>(), glm::pi<float>() * -0.5f),
                            m_velocity (0.f, 0.f, 0.f),
                            m_acceleration (0.f, 0.f, 0.f),
                            m_target (-1.f, 0.f, 0.f),
@@ -19,8 +19,8 @@ UserCamera::UserCamera() : m_position (0.f, 0.f, 0.f),
 
 void UserCamera::reset()
 {
-  m_position = {0.f, 0.f, 0.f};
-  m_rotation = {0.f, 0.f};
+  m_position = {127.5f, 20.f, 127.5f};
+  m_rotation = {glm::pi<float>(), glm::pi<float>() * -0.5f};
   m_velocity = {0.f, 0.f, 0.f};
   m_acceleration = {0.f, 0.f, 0.f};
   m_target = {-1.f, 0.f, 0.f};
@@ -150,12 +150,12 @@ void UserCamera::resize(const int _width, const int _height)
 
 void UserCamera::update()
 {
-  if (m_keyIndex[taa_W]) {m_acceleration.x = -0.015f;}
-  if (m_keyIndex[taa_S]) {m_acceleration.x =  0.015f;}
-  if (m_keyIndex[taa_A]) {m_acceleration.z =  0.015f;}
-  if (m_keyIndex[taa_D]) {m_acceleration.z = -0.015f;}
-  if (m_keyIndex[taa_Q]) {m_acceleration.y = -0.015f;}
-  if (m_keyIndex[taa_E]) {m_acceleration.y =  0.015f;}
+  if (m_keyIndex[taa_W]) {m_acceleration.x = -0.045f;}
+  if (m_keyIndex[taa_S]) {m_acceleration.x =  0.045f;}
+  if (m_keyIndex[taa_A]) {m_acceleration.z =  0.045f;}
+  if (m_keyIndex[taa_D]) {m_acceleration.z = -0.045f;}
+  if (m_keyIndex[taa_Q]) {m_acceleration.y = -0.045f;}
+  if (m_keyIndex[taa_E]) {m_acceleration.y =  0.045f;}
 
   if (m_keyIndex[taa_LEFT])  {m_position.z +=  0.1f;}
   if (m_keyIndex[taa_RIGHT]) {m_position.z -=  0.1f;}
@@ -181,7 +181,6 @@ void UserCamera::update()
   m_view = glm::lookAt(m_position, glm::vec3(m_target), glm::vec3(0.0f,1.0f,0.0f));
   m_proj = glm::perspective(m_fovy, m_aspect, m_zNear, m_zFar);
   m_cube = glm::lookAt({0.f, 0.f, 0.f}, m_target - m_position, {0.f, 1.f, 0.f});
-  std::cout<<glm::to_string(m_position)<<'\n'<<glm::to_string(m_rotation)<<"\n\n";
 }
 
 glm::mat4 UserCamera::viewMatrix() const

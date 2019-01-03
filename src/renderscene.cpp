@@ -42,6 +42,9 @@ void RenderScene::initGL() noexcept
   m_peepMesh = new ngl::Obj("models/peepmesh.obj");
   m_peepMesh->createVAO();
 
+  m_floorMesh = new ngl::Obj("models/floormesh.obj");
+  m_floorMesh->createVAO();
+
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
 
   shader->loadShader("environmentShader",
@@ -286,7 +289,7 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     glm::mat4 M, MV, MVP;
     glm::mat3 N;
     M = glm::mat4(1.f);
-    M = glm::rotate(M, glm::pi<float>() * 0.25f, {0.f, 1.f, 0.f});
+    //M = glm::rotate(M, glm::pi<float>() * 0.25f, {0.f, 1.f, 0.f});
     M = glm::translate(M, obj.getPosition());
     MV = m_view * M;
     MVP = m_VP * M;
@@ -332,6 +335,39 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     }
     m_peepMesh->draw();
   }
+  glm::mat4 M, MV, MVP;
+  glm::mat3 N;
+  M = glm::mat4(1.f);
+  M = glm::translate(M, {127.5f, 0.f, 127.5});
+  MV = m_view * M;
+  MVP = m_VP * M;
+  //Remove the jitter
+  N = glm::inverse(glm::mat3(M));
+
+  glUniformMatrix4fv(glGetUniformLocation(shaderID, "MV"),
+                     1,
+                     false,
+                     glm::value_ptr(MV));
+  glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"),
+                     1,
+                     false,
+                     glm::value_ptr(MVP));
+  glUniformMatrix3fv(glGetUniformLocation(shaderID, "N"),
+                     1,
+                     true,
+                     glm::value_ptr(N));
+  glUniform1f(glGetUniformLocation(shaderID, "roughness"), 1.f);
+  glUniform1f(glGetUniformLocation(shaderID, "metallic"), 0.f);
+  glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), 0.5f);
+  glUniform1f(glGetUniformLocation(shaderID, "specAmount"), 0.f);
+  glUniform3fv(glGetUniformLocation(shaderID, "materialDiff"),
+               1,
+               glm::value_ptr(glm::vec3(1.f, 1.f, 1.f)));
+  glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
+               1,
+               glm::value_ptr(glm::vec3(1.f, 1.f, 1.f)));
+  glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
+  m_floorMesh->draw();
   m_VP = m_proj * m_view;
 }
 

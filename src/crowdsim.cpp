@@ -23,16 +23,20 @@ glm::ivec2 CrowdSim::getRandomPoint()
   return {int((float(std::rand()) / float(RAND_MAX)) * 254 + 1), int((float(std::rand()) / float(RAND_MAX)) * 254 + 1)};
 }
 
+//CURRENTLY
 void CrowdSim::update()
 {
   for (size_t i = 0; i < numPeeps; i++)
   {
+    if (m_arrPeeps[i].getGridPosition() == m_arrPeeps[i].getDestinationTile()) {m_arrPeeps[i].pathComplete();}
     if (m_arrPeeps[i].needsPath())
     {
-      m_arrPeeps[i].setPath(getPath(m_arrPeeps[i].getGridPosition(), getRandomPoint()));
+      glm::ivec2 dest = getRandomPoint();
+      m_arrPeeps[i].setPath(getPath(m_arrPeeps[i].getGridPosition(), dest), dest);
     }
+    glm::vec2 x = m_paths.allFlows[m_arrPeeps[i].getCurrentSection()][m_arrPeeps[i].getLocalGoalIndex()][convertVec2ToIndex(m_arrPeeps[i].getGridPosition())];
+    m_arrPeeps[i].setVelocity(x);
     m_arrPeeps[i].update();
-    if (int((float(std::rand()) / float(RAND_MAX)) * 100) == 50) {m_arrPeeps[i].pathComplete();}
   }
 }
 
@@ -389,18 +393,17 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
     if (i != 0 && x == 0) {y++;}
     if (nodes[i].enabled == false || nodes[i].flowNbrs.size() == 0)
     {
-      flow[i] = dNone;
+      flow[i] = {0.f, 0.f};
     }
     else if (nodes[i].dist == FLT_MAX)
     {
-      flow[i] = dNoRoute;
+      flow[i] = {FLT_MAX, FLT_MAX};
     }
     else
     {
       if (x == goalX && y == goalY)
       {
-        dX = 0;
-        dY = 0;
+        flow[i] = {0.f, 0.f};
       }
       else
       {
@@ -415,159 +418,11 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
         }
         dX = nodes[i].flowNbrs[index]->locX() - nodes[i].locX();
         dY = nodes[i].flowNbrs[index]->locY() - nodes[i].locY();
-      }
-
-      switch (dX)
-      {
-        case 0:
-        {
-          switch (dY)
-          {
-            case 0:
-            {
-              flow[i] = d0;
-              break;
-            }
-            case -1:
-            {
-              flow[i] = dN;
-              break;
-            }
-            case 1:
-            {
-              flow[i] = dS;
-              break;
-            }
-          }
-          break;
-        }
-        case 1:
-        {
-          switch (dY)
-          {
-            case 0:
-            {
-              flow[i] = dE;
-              break;
-            }
-            case -1:
-            {
-              flow[i] = dNE;
-              break;
-            }
-            case 1:
-            {
-              flow[i] = dSE;
-              break;
-            }
-          }
-          break;
-        }
-        case -1:
-        {
-          switch (dY)
-          {
-            case 0:
-            {
-              flow[i] = dW;
-              break;
-            }
-            case -1:
-            {
-              flow[i] = dNW;
-              break;
-            }
-            case 1:
-            {
-              flow[i] = dSW;
-              break;
-            }
-          }
-          break;
-        }
+        flow[i] = {dX, dY};
       }
     }
   }
   return flow;
-}
-
-void CrowdSim::printFlows()
-{
-  for (int section = 0; section < 1024; section++)
-  {
-    for (int flowInSection = 0; flowInSection < 64; flowInSection++)
-    {
-      int x = 0;
-      int y = 0;
-      std::cout<<"Section = "<<section + 1<<", flowNo: "<<flowInSection + 1<<'\n';
-      for (int tileInFlow = 0; tileInFlow < 64; tileInFlow++)
-      {
-        x = tileInFlow % 8;
-        if (tileInFlow != 0 && x == 0) {y++; std::cout<<"\n";}
-        std::string arrow;
-        switch (m_paths.allFlows[section][flowInSection][y * 8 + x])
-        {
-          case dN:
-          {
-            arrow = "🡑";
-            break;
-          }
-          case dS:
-          {
-            arrow = "🡓";
-            break;
-          }
-          case dE:
-          {
-            arrow = "🡒";
-            break;
-          }
-          case dW:
-          {
-            arrow = "🡐";
-            break;
-          }
-          case dNE:
-          {
-            arrow = "🡕";
-            break;
-          }
-          case dNW:
-          {
-            arrow = "🡔";
-            break;
-          }
-          case dSE:
-          {
-            arrow = "🡖";
-            break;
-          }
-          case dSW:
-          {
-            arrow = "🡗";
-            break;
-          }
-          case d0:
-          {
-            arrow = "\033[1;32mX\033[0m";
-            break;
-          }
-          case dNone:
-          {
-            arrow = "\033[1;31m#\033[0m";
-            break;
-          }
-          case dNoRoute:
-          {
-            arrow = "\033[1;33m0\033[0m";
-            break;
-          }
-        }
-        std::cout<<arrow<<' ';
-      }
-      std::cout<<"\n";
-    }
-  }
 }
 
 void CrowdSim::getLinkerChain(int startJunction, int endJunction)
@@ -786,9 +641,7 @@ void CrowdSim::calculateRoutes(bool printFlag)
     }
     m_paths.allFlows.push_back(m_paths.currentSectionFlow);
   }
-  if(printFlag) {printFlows();}
   m_totalJunctions = 1984;
-  m_etaDirty = true;
   std::thread linkerPrint(&CrowdSim::spinLinker, this);
   generateLinkerMap();
   dijkstraPrint.join();
