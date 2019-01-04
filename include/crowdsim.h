@@ -17,7 +17,7 @@ class CrowdSim
     CrowdSim();
     void update();
     void calculateRoutes(bool printFlag);
-    enum crowdsimEnum {numPeeps = 5000};
+    enum crowdsimEnum {numPeeps = 10000};
     std::array<Peep, numPeeps> getPeeps() const;
   private:
     std::array<Peep, numPeeps> m_arrPeeps;

@@ -20,8 +20,8 @@ std::array<Peep, CrowdSim::numPeeps> CrowdSim::initPeeps()
 
 glm::ivec2 CrowdSim::getRandomPoint()
 {
-  //return {int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f), int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f)};
-  return {128, 128};
+  return {int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f), int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f)};
+  //return {128, 128};
 }
 
 glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const
@@ -84,6 +84,7 @@ void CrowdSim::update()
 {
   for (size_t i = 0; i < numPeeps; i++)
   {
+    if (m_arrPeeps[i].isDone()) {continue;}
     //if (m_arrPeeps[i].getGridPosition() == m_arrPeeps[i].getDestinationTile()) {m_arrPeeps[i].pathComplete();}
     if (m_arrPeeps[i].needsPath())
     {
@@ -330,7 +331,6 @@ float CrowdSim::vectorLength(glm::vec2 a)
 std::vector<CrowdSim::node> CrowdSim::dijkstraGrid(int sectionNo, int sourceX, int sourceY)
 {
   m_gridRunning = true;
-  int sectionOffset = sectionNo * 64;
   std::vector<node> vecNodes;
   int numUnvisitedNodes = 8 * 8;
 
@@ -389,8 +389,6 @@ std::vector<CrowdSim::node> CrowdSim::dijkstraGrid(int sectionNo, int sourceX, i
     }
   }
 
-  int startIndex = (sourceY * 8) + sourceX;
-  int startNumRemNodes = numUnvisitedNodes;
   while (numUnvisitedNodes != 0)
   {
     int index = INT_MAX;
@@ -468,7 +466,7 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
         int index = INT_MAX;
         for (size_t j = 0; j < nodes[i].flowNbrs.size(); j++)
         {
-          glm::vec2 dVector = nodes[i].flowNbrs[j]->loc - nodes[i].loc;
+          //glm::vec2 dVector = nodes[i].flowNbrs[j]->loc - nodes[i].loc;
           float dist = nodes[i].flowNbrs[j]->dist;
           minDist = std::min(dist, minDist);
           if (minDist == dist) {index = j;}
@@ -662,7 +660,7 @@ void CrowdSim::generateLinkerMap()
             {
               if (m_paths.referenceJunctions[m_paths.referenceJunctions[i].nbrs[k]].junctionID == m_paths.referenceJunctions[j].junctionID) {shouldAdd = false;}
             }
-            m_paths.referenceJunctions[i].nbrs.push_back(j);
+            if (shouldAdd) {m_paths.referenceJunctions[i].nbrs.push_back(j);}
           }
     }
   }
@@ -733,7 +731,6 @@ Path CrowdSim::getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal)
   float shortestDist = FLT_MAX;
   int selectedSource = INT_MAX;
   int selectedDestin = INT_MAX;
-  bool failed = false;
   for (size_t i = 0; i < m_sectionMap[sourceSection].size(); i++)
   {
     int sourceJunction = m_sectionMap[sourceSection][i];
@@ -760,7 +757,6 @@ Path CrowdSim::getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal)
   }
 
   Path returnPath;
-  bool nextStartIsSecA;
   junction* endJunction = m_paths.linkerChains[selectedSource][selectedDestin][0];
   std::array<int, 2> cIndexPair;
   if (endJunction->sectionA == destinSection) {cIndexPair[0] = convertVec2ToIndex(endJunction->nodeLocA);}
@@ -772,10 +768,10 @@ Path CrowdSim::getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal)
   {
     junction* sJ = m_paths.linkerChains[selectedSource][selectedDestin][i];
     junction* eJ = m_paths.linkerChains[selectedSource][selectedDestin][i + 1];
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== sJ->sectionA) {cIndexPair[0] = convertVec2ToIndex(sJ->nodeLocA);}
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== sJ->sectionB) {cIndexPair[0] = convertVec2ToIndex(sJ->nodeLocB);}
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== eJ->sectionA) {cIndexPair[1] = convertVec2ToIndex(eJ->nodeLocA);}
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== eJ->sectionB) {cIndexPair[1] = convertVec2ToIndex(eJ->nodeLocB);}
+    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== sJ->sectionA) {cIndexPair[1] = convertVec2ToIndex(sJ->nodeLocA);}
+    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== sJ->sectionB) {cIndexPair[1] = convertVec2ToIndex(sJ->nodeLocB);}
+    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== eJ->sectionA) {cIndexPair[0] = convertVec2ToIndex(eJ->nodeLocA);}
+    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== eJ->sectionB) {cIndexPair[0] = convertVec2ToIndex(eJ->nodeLocB);}
     returnPath.pairs.push_back(cIndexPair);
     returnPath.sections.push_back(m_paths.linkerSectionChain[selectedSource][selectedDestin][i]);
   }

@@ -51,7 +51,7 @@ void Peep::update()
     if (m_position.x >= m_currentDestinationTile.x + 0.49f && m_position.x <= m_currentDestinationTile.x + 0.51f &&
         m_position.y >= m_currentDestinationTile.y + 0.49f && m_position.y <= m_currentDestinationTile.y + 0.51f)
     {
-      if (m_path.sections.size() > 0)
+      if (m_path.sections.size() > 1)
       {
         m_path.sections.pop_back();
         m_path.pairs.pop_back();
@@ -59,7 +59,11 @@ void Peep::update()
         m_currentSection = m_path.sections.back();
         m_currentDestinationTile = {m_currentGoalIndex % 8 + (8 * (m_currentSection % 32)), (m_currentGoalIndex / 8) + ((m_currentSection / 32) * 8)};
         m_traversingJunction = true;
-        m_junctionTile = {m_path.pairs.back()[0] % 8 + (8 * (m_currentSection % 32)), (m_path.pairs.back()[0] / 8) + ((m_currentSection / 32) * 8)};
+        m_junctionTile = {m_path.pairs.back()[0] % 8 + (8 * (m_path.sections.back() % 32)), (m_path.pairs.back()[0] / 8) + ((m_path.sections.back() / 32) * 8)};
+      }
+      else
+      {
+        m_done = true;
       }
     }
   }
@@ -83,6 +87,15 @@ bool Peep::needsPath() const
 
 void Peep::setPath(Path p, glm::ivec2 destTile)
 {
+//  std::cout<<"\n\n\n\n";
+//  for (size_t i = 0; i < p.pairs.size(); i++)
+//  {
+//    std::cout<<p.pairs[i][0]<<", "<<p.pairs[i][1]<<'\n';
+//    std::cout<<glm::to_string(glm::ivec2(p.pairs[i][1] % 8 + (8 * (p.sections[i] % 32)), (p.pairs[i][1] / 8) + ((p.sections[i] / 32) * 8)));
+//    std::cout<<"\t";
+//    std::cout<<glm::to_string(glm::ivec2(p.pairs[i][0] % 8 + (8 * (p.sections[i] % 32)), (p.pairs[i][0] / 8) + ((p.sections[i] / 32) * 8)));
+//    std::cout<<'\n';
+//  }
   m_path = p;
   m_hasPath = true;
   m_currentGoalIndex = p.pairs.back()[1];
@@ -126,4 +139,9 @@ glm::ivec2 Peep::getDestinationTile() const
 bool Peep::isTraversingJunction() const
 {
   return m_traversingJunction;
+}
+
+bool Peep::isDone() const
+{
+  return m_done;
 }

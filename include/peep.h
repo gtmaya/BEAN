@@ -27,6 +27,7 @@ class Peep
     int m_currentGoalIndex;
     int m_destinationIndex;
     static int temp;
+    bool m_done = false;
   public:
     glm::vec2 getPosition() const;
     glm::ivec2 getGridPosition() const;
@@ -42,7 +43,7 @@ class Peep
     int getLocalGoalIndex() const;
     void setVelocity(glm::vec2 velocity);
     bool isTraversingJunction() const;
-
+    bool isDone() const;
 };
 
 #endif
