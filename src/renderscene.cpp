@@ -290,7 +290,8 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     glm::mat3 N;
     M = glm::mat4(1.f);
     //M = glm::rotate(M, glm::pi<float>() * 0.25f, {0.f, 1.f, 0.f});
-    M = glm::translate(M, obj.getPosition());
+    glm::vec2 pos2D = obj.getPosition();
+    M = glm::translate(M, {pos2D.x, 0.f, pos2D.y});
     MV = m_view * M;
     MVP = m_VP * M;
     //Remove the jitter

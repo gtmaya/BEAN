@@ -20,7 +20,8 @@ std::array<Peep, CrowdSim::numPeeps> CrowdSim::initPeeps()
 
 glm::ivec2 CrowdSim::getRandomPoint()
 {
-  return {int((float(std::rand()) / float(RAND_MAX)) * 128 + 8), int((float(std::rand()) / float(RAND_MAX)) * 128 + 8)};
+  //return {int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f), int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f)};
+  return {128, 128};
 }
 
 glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const
@@ -29,51 +30,53 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
   glm::vec2 distFromTileCentre {fmod(currentPosition.x, 1.f), fmod(currentPosition.y, 1.f)};
   distFromTileCentre.x -= 0.5f;
   distFromTileCentre.y -= 0.5f;
-  float vHMix = (std::abs(distFromTileCentre.x) - std::abs(distFromTileCentre.y)) + 0.5;
+  float vHMix = (((std::abs(distFromTileCentre.x) - std::abs(distFromTileCentre.y)) / std::max(std::abs(distFromTileCentre.x), std::abs(distFromTileCentre.y))) + 1) * 0.5;
   glm::vec2 interpolatedVelocity;
   glm::vec2 thisTileVelocity = flow[currentIndex];
   if (distFromTileCentre.x > 0.f)
   {
-    glm::vec2 rightSample = {0.f, 0.f};
+    glm::vec2 rightSample = {-1.f, 0.f};
     if (currentIndex % 8 != 7) {rightSample = flow[currentIndex + 1];}
     if (distFromTileCentre.y > 0.f)
     {
-      glm::vec2 topSample = {0.f, 0.f};
+      glm::vec2 topSample = {0.f, -1.f};
       if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
-      glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, distFromTileCentre.y);
-      glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, distFromTileCentre.x);
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, std::abs(distFromTileCentre.y));
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, std::abs(distFromTileCentre.x));
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
     else
     {
-      glm::vec2 bottomSample = {0.f, 0.f};
+      glm::vec2 bottomSample = {0.f, 1.f};
       if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
-      glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, distFromTileCentre.y);
-      glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, distFromTileCentre.x);
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, std::abs(distFromTileCentre.y));
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, std::abs(distFromTileCentre.x));
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
   }
   else
   {
-    glm::vec2 leftSample = {0.f, 0.f};
+    glm::vec2 leftSample = {1.f, 0.f};
     if (currentIndex % 8 != 0) {leftSample = flow[currentIndex - 1];}
     if (distFromTileCentre.y > 0.f)
     {
-      glm::vec2 topSample = {0.f, 0.f};
+      glm::vec2 topSample = {0.f, -1.f};
       if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
-      glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, distFromTileCentre.y);
-      glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, distFromTileCentre.x);
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, std::abs(distFromTileCentre.y));
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, std::abs(distFromTileCentre.x));
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
     else
     {
-      glm::vec2 bottomSample = {0.f, 0.f};
+      glm::vec2 bottomSample = {0.f, 1.f};
       if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
-      glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, distFromTileCentre.y);
-      glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, distFromTileCentre.x);
+      glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, std::abs(distFromTileCentre.y));
+      glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, std::abs(distFromTileCentre.x));
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
   }
+//  std::cout<<"Section : "<<section<<" currentPosition = "<<glm::to_string(currentPosition)<<" currentIndex = "<<currentIndex<<" destIndex = "<<destIndex<<'\n';
+//  std::cout<<"interpolatedVelocity = "<<glm::to_string(interpolatedVelocity)<<"\n\n";
   return interpolatedVelocity;
 }
 
@@ -81,14 +84,15 @@ void CrowdSim::update()
 {
   for (size_t i = 0; i < numPeeps; i++)
   {
-    if (m_arrPeeps[i].getGridPosition() == m_arrPeeps[i].getDestinationTile()) {m_arrPeeps[i].pathComplete();}
+    //if (m_arrPeeps[i].getGridPosition() == m_arrPeeps[i].getDestinationTile()) {m_arrPeeps[i].pathComplete();}
     if (m_arrPeeps[i].needsPath())
     {
       glm::ivec2 dest = getRandomPoint();
       m_arrPeeps[i].setPath(getPath(m_arrPeeps[i].getGridPosition(), dest), dest);
     }
+//    std::cout<<"gridPosition = "<<glm::to_string(m_arrPeeps[i].getGridPosition())<<'\n';
     glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
-    m_arrPeeps[i].setVelocity(x);
+    if (!m_arrPeeps[i].isTraversingJunction()) {m_arrPeeps[i].setVelocity(x);}
     m_arrPeeps[i].update();
   }
 }
@@ -448,10 +452,10 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
     {
       flow[i] = {0.f, 0.f};
     }
-    else if (nodes[i].dist == FLT_MAX)
-    {
-      flow[i] = {FLT_MAX, FLT_MAX};
-    }
+//    else if (nodes[i].dist == FLT_MAX)
+//    {
+//      flow[i] = {FLT_MAX, FLT_MAX};
+//    }
     else
     {
       if (x == goalX && y == goalY)
