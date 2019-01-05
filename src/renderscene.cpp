@@ -16,6 +16,16 @@ RenderScene::RenderScene() : m_width(1),
   m_crowdSim->calculateRoutes(false);
   m_startTime = std::chrono::high_resolution_clock::now();
   m_prevFrameTime = std::chrono::high_resolution_clock::now();
+  float maxLightDist = 0;
+  for (size_t i = 0; i < m_lightPos.size(); i++)
+  {
+    maxLightDist = std::max(glm::length(m_lightPos[i]), maxLightDist);
+  }
+  float multiplier = 256.f / maxLightDist;
+  for (size_t i = 0; i < m_lightPos.size(); i++)
+  {
+    m_lightPos[i] *= multiplier;
+  }
 }
 
 RenderScene::~RenderScene() = default;
@@ -309,31 +319,31 @@ void RenderScene::renderScene(size_t _activeAAFBO)
                        1,
                        true,
                        glm::value_ptr(N));
-//    glUniform1f(glGetUniformLocation(shaderID, "roughness"), obj.getShaderProps()->m_roughness);
-//    glUniform1f(glGetUniformLocation(shaderID, "metallic"), obj.getShaderProps()->m_metallic);
-//    glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), obj.getShaderProps()->m_diffuseWeight);
-//    glUniform1f(glGetUniformLocation(shaderID, "specAmount"), obj.getShaderProps()->m_specularWeight);
+    glUniform1f(glGetUniformLocation(shaderID, "roughness"), obj.getShaderProps()->m_roughness);
+    glUniform1f(glGetUniformLocation(shaderID, "metallic"), obj.getShaderProps()->m_metallic);
+    glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), obj.getShaderProps()->m_diffuseWeight);
+    glUniform1f(glGetUniformLocation(shaderID, "specAmount"), obj.getShaderProps()->m_specularWeight);
     glUniform3fv(glGetUniformLocation(shaderID, "materialDiff"),
                  1,
                  glm::value_ptr(obj.getShaderProps()->m_diffuseColour));
-//    glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
-//                 1,
-//                 glm::value_ptr(obj.getShaderProps()->m_specularColour));
+    glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
+                 1,
+                 glm::value_ptr(obj.getShaderProps()->m_specularColour));
     glUniform1f(glGetUniformLocation(shaderID, "alpha"), obj.getShaderProps()->m_alpha);
-//    if (obj.getShaderProps()->m_diffuseTex == taa_checkerboard)
-//    {
-//      glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 1);
-//      glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), taa_checkerboard);
-//    }
-//    else if (obj.getShaderProps()->m_diffuseTex == taa_dirt)
-//    {
-//      glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 1);
-//      glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), taa_dirt);
-//    }
-//    else
-//    {
-//      glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
-//    }
+    if (obj.getShaderProps()->m_diffuseTex == taa_checkerboard)
+    {
+      glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 1);
+      glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), taa_checkerboard);
+    }
+    else if (obj.getShaderProps()->m_diffuseTex == taa_dirt)
+    {
+      glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 1);
+      glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), taa_dirt);
+    }
+    else
+    {
+      glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
+    }
     m_peepMesh->draw();
   }
   glm::mat4 M, MV, MVP;
@@ -357,17 +367,17 @@ void RenderScene::renderScene(size_t _activeAAFBO)
                      1,
                      true,
                      glm::value_ptr(N));
-//  glUniform1f(glGetUniformLocation(shaderID, "roughness"), 1.f);
-//  glUniform1f(glGetUniformLocation(shaderID, "metallic"), 0.f);
-//  glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), 0.5f);
-//  glUniform1f(glGetUniformLocation(shaderID, "specAmount"), 0.f);
+  glUniform1f(glGetUniformLocation(shaderID, "roughness"), 1.f);
+  glUniform1f(glGetUniformLocation(shaderID, "metallic"), 0.f);
+  glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), 4.f);
+  glUniform1f(glGetUniformLocation(shaderID, "specAmount"), 0.f);
   glUniform3fv(glGetUniformLocation(shaderID, "materialDiff"),
                1,
                glm::value_ptr(glm::vec3(1.f, 1.f, 1.f)));
-//  glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
-//               1,
-//               glm::value_ptr(glm::vec3(1.f, 1.f, 1.f)));
-//  glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
+  glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
+               1,
+               glm::value_ptr(glm::vec3(1.f, 1.f, 1.f)));
+  glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
   m_floorMesh->draw();
   m_VP = m_proj * m_view;
 }

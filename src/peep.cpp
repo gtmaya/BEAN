@@ -4,6 +4,8 @@
 
 int Peep::temp = 0;
 
+std::array<glm::vec3, 5> colours {glm::vec3(27, 153, 139), glm::vec3(255, 255, 220), glm::vec3(255, 253, 130), glm::vec3(255, 155, 113), glm::vec3(232, 72, 85)};
+
 Peep::Peep() : m_position({0.f, 0.f}),
                m_shaderProps (new ShaderProps({1.f, 1.f, 1.f},
                                               {1.f, 1.f, 1.f},
@@ -19,9 +21,10 @@ Peep::Peep() : m_position({0.f, 0.f}),
   m_position.y = float(std::rand()) / float(RAND_MAX) * 254.f + 1.f;
   m_nearestTile.x = int(std::floor(m_position.x));
   m_nearestTile.y = int(std::floor(m_position.y));
-  m_shaderProps->m_diffuseColour.r = float(std::rand()) / float(RAND_MAX);
-  m_shaderProps->m_diffuseColour.g = float(std::rand()) / float(RAND_MAX);
-  m_shaderProps->m_diffuseColour.b = float(std::rand()) / float(RAND_MAX);
+//  m_shaderProps->m_diffuseColour.r = float(std::rand()) / float(RAND_MAX);
+//  m_shaderProps->m_diffuseColour.g = float(std::rand()) / float(RAND_MAX);
+//  m_shaderProps->m_diffuseColour.b = float(std::rand()) / float(RAND_MAX);
+  m_shaderProps->m_diffuseColour = colours[int(float(std::rand()) / float(RAND_MAX) * 5.f)] * 0.00392156862745f * (float(std::rand()) / float(RAND_MAX) * 0.5f + 0.5f);
   m_velocity *= 0.2;
   m_currentSection = m_nearestTile.x / 32 + 32 * (m_nearestTile.y / 32);
 }
