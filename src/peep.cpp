@@ -6,8 +6,8 @@ int Peep::temp = 0;
 
 std::array<glm::vec3, 5> colours {glm::vec3(27, 153, 139), glm::vec3(255, 255, 220), glm::vec3(255, 253, 130), glm::vec3(255, 155, 113), glm::vec3(232, 72, 85)};
 
-Peep::Peep() : m_position({0.f, 0.f}),
-               m_shaderProps (new ShaderProps({1.f, 1.f, 1.f},
+Peep::Peep() : m_position     ({1.f, 1.f}),
+               m_shaderProps  (new ShaderProps({1.f, 1.f, 1.f},
                                               {1.f, 1.f, 1.f},
                                               1.f,
                                               0.1f,
@@ -15,17 +15,15 @@ Peep::Peep() : m_position({0.f, 0.f}),
                                               0.f,
                                               1.f,
                                               0)),
-               m_velocity ({0.f, 0.f})
+               m_velocity     ({0.f, 0.f}),
+               m_direction    ({0.f, 0.f})
 {
+  m_speed = (float(std::rand()) / float(RAND_MAX)) * 0.1f + 0.1f;
   m_position.x = float(std::rand()) / float(RAND_MAX) * 254.f + 1.f;
   m_position.y = float(std::rand()) / float(RAND_MAX) * 254.f + 1.f;
   m_nearestTile.x = int(std::floor(m_position.x));
   m_nearestTile.y = int(std::floor(m_position.y));
-//  m_shaderProps->m_diffuseColour.r = float(std::rand()) / float(RAND_MAX);
-//  m_shaderProps->m_diffuseColour.g = float(std::rand()) / float(RAND_MAX);
-//  m_shaderProps->m_diffuseColour.b = float(std::rand()) / float(RAND_MAX);
   m_shaderProps->m_diffuseColour = colours[int(float(std::rand()) / float(RAND_MAX) * 5.f)] * 0.00392156862745f * (float(std::rand()) / float(RAND_MAX) * 0.5f + 0.5f);
-  m_velocity *= 0.2;
   m_currentSection = m_nearestTile.x / 32 + 32 * (m_nearestTile.y / 32);
 }
 
@@ -46,27 +44,37 @@ ShaderProps* Peep::getShaderProps() const
 
 void Peep::update()
 {
+  m_hunger -= (float(std::rand()) / float(RAND_MAX)) * 0.004;
+  m_hygiene -= (float(std::rand()) / float(RAND_MAX)) * 0.004;
+  m_velocity = 0.1f * m_direction;
   m_position += m_velocity;
   m_nearestTile.x = int(std::floor(m_position.x));
   m_nearestTile.y = int(std::floor(m_position.y));
+//  std::cout<<"CURRENTLY AT "<<glm::to_string(m_position)<<'\n';
+//  std::cout<<"CURRENT DEST "<<glm::to_string(m_currentDestinationTile)<<'\n';
+//  std::cout<<"traversing junction = "<<m_traversingJunction<<'\n';
   if (!m_traversingJunction)
   {
-    if (m_position.x >= m_currentDestinationTile.x + 0.49f && m_position.x <= m_currentDestinationTile.x + 0.51f &&
-        m_position.y >= m_currentDestinationTile.y + 0.49f && m_position.y <= m_currentDestinationTile.y + 0.51f)
+    if (m_position.x >= m_currentDestinationTile.x + 0.45f && m_position.x <= m_currentDestinationTile.x + 0.55f &&
+        m_position.y >= m_currentDestinationTile.y + 0.45f && m_position.y <= m_currentDestinationTile.y + 0.55f)
     {
       if (m_path.sections.size() > 1)
       {
         m_path.sections.pop_back();
         m_path.pairs.pop_back();
+        m_oldSection = m_currentSection;
         m_currentGoalIndex = m_path.pairs.back()[1];
         m_currentSection = m_path.sections.back();
         m_currentDestinationTile = {m_currentGoalIndex % 8 + (8 * (m_currentSection % 32)), (m_currentGoalIndex / 8) + ((m_currentSection / 32) * 8)};
         m_traversingJunction = true;
         m_junctionTile = {m_path.pairs.back()[0] % 8 + (8 * (m_path.sections.back() % 32)), (m_path.pairs.back()[0] / 8) + ((m_path.sections.back() / 32) * 8)};
+        m_containerDirty = true;
+        m_vecContainerAddIDs.push_back(m_currentSection);
       }
       else
       {
         m_done = true;
+        m_shaderProps->m_diffuseColour = glm::vec3(0.f, 1.f, 0.f);
       }
     }
   }
@@ -74,11 +82,15 @@ void Peep::update()
   {
     glm::vec2 peepToTarget {m_junctionTile.x + 0.5f - m_position.x, m_junctionTile.y + 0.5f - m_position.y};
     peepToTarget = glm::normalize(peepToTarget);
-    m_velocity = peepToTarget * 0.1f;
-    if (m_position.x >= m_junctionTile.x + 0.49f && m_position.x <= m_junctionTile.x + 0.51f &&
-        m_position.y >= m_junctionTile.y + 0.49f && m_position.y <= m_junctionTile.y + 0.51f)
+    m_direction += peepToTarget;
+    if (glm::length(m_direction) > 1.f) {m_direction = glm::normalize(m_direction);}
+//    std::cout<<"Peep to Target = "<<glm::to_string(peepToTarget)<<'\n';
+    if (m_position.x >= m_junctionTile.x + 0.45f && m_position.x <= m_junctionTile.x + 0.55f &&
+        m_position.y >= m_junctionTile.y + 0.45f && m_position.y <= m_junctionTile.y + 0.55f)
     {
+      m_vecContainerRemoveIDs.push_back(m_oldSection);
       m_traversingJunction = false;
+      m_containerDirty = true;
     }
   }
 }
@@ -99,18 +111,15 @@ void Peep::setPath(Path p, glm::ivec2 destTile)
 //    std::cout<<glm::to_string(glm::ivec2(p.pairs[i][0] % 8 + (8 * (p.sections[i] % 32)), (p.pairs[i][0] / 8) + ((p.sections[i] / 32) * 8)));
 //    std::cout<<'\n';
 //  }
+
   m_path = p;
   m_hasPath = true;
   m_currentGoalIndex = p.pairs.back()[1];
   m_currentSection = p.sections.back();
+  m_containerDirty = true;
   m_destinationIndex = p.pairs[0][1];
   m_destinationTile = destTile;
   m_currentDestinationTile = {m_currentGoalIndex % 8 + (8 * (m_currentSection % 32)), (m_currentGoalIndex / 8) + ((m_currentSection / 32) * 8)};
-}
-
-void Peep::pathComplete()
-{
-  m_hasPath = false;
 }
 
 int Peep::getDestinationIndex() const
@@ -128,10 +137,11 @@ int Peep::getLocalGoalIndex() const
   return m_currentGoalIndex;
 }
 
-void Peep::setVelocity(glm::vec2 velocity)
+void Peep::setDirection(glm::vec2 direction)
 {
-  m_velocity.x = velocity.x * 0.1f;
-  m_velocity.y = velocity.y * 0.1f;
+  if (glm::length(direction) > 1.f) {direction;}
+  m_direction += direction;
+  m_direction = glm::normalize(m_direction);
 }
 
 glm::ivec2 Peep::getDestinationTile() const
@@ -147,4 +157,38 @@ bool Peep::isTraversingJunction() const
 bool Peep::isDone() const
 {
   return m_done;
+}
+
+std::vector<int> Peep::getNewContainers() const
+{
+  return m_vecContainerAddIDs;
+}
+
+std::vector<int> Peep::getOldContainers() const
+{
+  return m_vecContainerRemoveIDs;
+}
+
+bool Peep::containerIsDirty() const
+{
+  return m_containerDirty;
+}
+
+void Peep::makeContainerClean()
+{
+  m_containerDirty = false;
+  m_vecContainerAddIDs.clear();
+  m_vecContainerRemoveIDs.clear();
+}
+
+int Peep::getNeediestNeed() const
+{
+  if (m_hunger < m_hygiene)
+  {
+    return 2;
+  }
+  else
+  {
+    return 3;
+  }
 }

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <array>
 #include <vector>
+#include <algorithm>
 #include <math.h>
 #include <iomanip>
 #include <thread>
@@ -21,6 +22,7 @@ class CrowdSim
     std::array<Peep, numPeeps> getPeeps() const;
   private:
     std::array<Peep, numPeeps> m_arrPeeps;
+    std::array<std::vector<Peep*>, 1024> m_peepSectionMap;
     std::array<Peep, numPeeps> initPeeps();
     bool m_gridDone = false;
     bool m_gridRunning = false;

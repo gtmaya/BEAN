@@ -21,7 +21,7 @@ std::array<Peep, CrowdSim::numPeeps> CrowdSim::initPeeps()
 glm::ivec2 CrowdSim::getRandomPoint()
 {
   return {int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f), int((float(std::rand()) / float(RAND_MAX)) * 254.f + 1.f)};
-  //return {128, 128};
+//  return {128, 128};
 }
 
 glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const
@@ -35,11 +35,11 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
   glm::vec2 thisTileVelocity = flow[currentIndex];
   if (distFromTileCentre.x > 0.f)
   {
-    glm::vec2 rightSample = {-1.f, 0.f};
+    glm::vec2 rightSample = {-100.f, 0.f};
     if (currentIndex % 8 != 7) {rightSample = flow[currentIndex + 1];}
     if (distFromTileCentre.y > 0.f)
     {
-      glm::vec2 topSample = {0.f, -1.f};
+      glm::vec2 topSample = {0.f, -100.f};
       if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
       glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, std::abs(distFromTileCentre.x));
@@ -47,7 +47,7 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
     }
     else
     {
-      glm::vec2 bottomSample = {0.f, 1.f};
+      glm::vec2 bottomSample = {0.f, 100.f};
       if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
       glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, std::abs(distFromTileCentre.x));
@@ -56,11 +56,11 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
   }
   else
   {
-    glm::vec2 leftSample = {1.f, 0.f};
+    glm::vec2 leftSample = {100.f, 0.f};
     if (currentIndex % 8 != 0) {leftSample = flow[currentIndex - 1];}
     if (distFromTileCentre.y > 0.f)
     {
-      glm::vec2 topSample = {0.f, -1.f};
+      glm::vec2 topSample = {0.f, -100.f};
       if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
       glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, std::abs(distFromTileCentre.x));
@@ -68,7 +68,7 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
     }
     else
     {
-      glm::vec2 bottomSample = {0.f, 1.f};
+      glm::vec2 bottomSample = {0.f, 100.f};
       if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
       glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, std::abs(distFromTileCentre.x));
@@ -85,7 +85,20 @@ void CrowdSim::update()
   for (size_t i = 0; i < numPeeps; i++)
   {
     if (m_arrPeeps[i].isDone()) {continue;}
-    //if (m_arrPeeps[i].getGridPosition() == m_arrPeeps[i].getDestinationTile()) {m_arrPeeps[i].pathComplete();}
+    if (m_arrPeeps[i].containerIsDirty())
+    {
+      for (size_t j = 0; j < m_arrPeeps[i].getOldContainers().size(); j++)
+      {
+        std::vector<Peep*>* section = &m_peepSectionMap[m_arrPeeps[i].getOldContainers()[j]];
+        section->erase(std::remove(section->begin(), section->end(), &m_arrPeeps[i]), section->end());
+      }
+      for (size_t j = 0; j < m_arrPeeps[i].getNewContainers().size(); j++)
+      {
+        std::vector<Peep*>* section = &m_peepSectionMap[m_arrPeeps[i].getNewContainers()[j]];
+        section->push_back(&m_arrPeeps[i]);
+      }
+      m_arrPeeps[i].makeContainerClean();
+    }
     if (m_arrPeeps[i].needsPath())
     {
       glm::ivec2 dest = getRandomPoint();
@@ -93,9 +106,45 @@ void CrowdSim::update()
     }
 //    std::cout<<"gridPosition = "<<glm::to_string(m_arrPeeps[i].getGridPosition())<<'\n';
     glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
-    if (!m_arrPeeps[i].isTraversingJunction()) {m_arrPeeps[i].setVelocity(x);}
+    if (!m_arrPeeps[i].isTraversingJunction()) {m_arrPeeps[i].setDirection(glm::normalize(x));}
+  }
+  for (int i = 0; i < 1024; i++)
+  {
+    for (auto &p1 : m_peepSectionMap[i])
+    {
+      if (p1->isDone()) {continue;}
+//      std::cout<<"There are "<<m_peepSectionMap[i].size()<<" peeps here."<<'\n';
+      for (auto &p2 : m_peepSectionMap[i])
+      {
+        if (p1 == p2) {continue;}
+        glm::vec2 dVec = p1->getPosition() - p2->getPosition();
+//        std::cout<<"dVec = "<<glm::to_string(dVec);
+//        std::cout<<"length = "<<glm::length(dVec)<<'\n';
+        float avoidance;
+        if (glm::length(dVec) > 2.f)
+        {
+          avoidance = 0.f;
+        }
+        else
+        {
+          avoidance = std::pow(0.5f, glm::length(dVec));
+        }
+//        std::cout<<"avoidance = "<<avoidance<<'\n';
+        if (avoidance != 0.f)
+        {
+          p1->setDirection(avoidance * glm::normalize(dVec));
+        }
+      }
+    }
+//    size_t ps = m_peepSectionMap[i].size();
+//    if (ps > 0) {std::cout<<"There are "<<ps<<" peeps in section "<<i<<'\n';}
+  }
+  for (int i = 0; i < numPeeps; i++)
+  {
+    if (m_arrPeeps[i].isDone()) {continue;}
     m_arrPeeps[i].update();
   }
+//  std::cout<<"\n\n\n\n";
 }
 
 int CrowdSim::m_junctionCounter = 0;
@@ -473,7 +522,7 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
         }
         dX = nodes[i].flowNbrs[index]->locX() - nodes[i].locX();
         dY = nodes[i].flowNbrs[index]->locY() - nodes[i].locY();
-        flow[i] = {dX, dY};
+        flow[i] = glm::normalize(glm::vec2(dX, dY));
       }
     }
   }
@@ -482,18 +531,23 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
 
 void CrowdSim::getLinkerChain(int startJunction, int endJunction)
 {
+  static int temp = 0;
+  temp = 0;
+//  std::cout<<"m_paths.linker[endJunction][startJunction].dist = "<<m_paths.linker[endJunction][startJunction].dist<<'\n';
+//  std::cout<<"StartJunction  = "<<startJunction<<" endJunction = "<<endJunction<<'\n';
   pathStorage::linkerChain chain;
   std::vector<int> sections;
-  chain.push_back(&m_paths.linker[startJunction][endJunction]);
+  chain.insert(chain.begin(), &m_paths.linker[endJunction][startJunction]);
   bool doneChain = false;
-  int pJIndex = m_paths.linker[startJunction][endJunction].pJunc;
+  int pJIndex = m_paths.linker[endJunction][startJunction].pJunc;
   while (!doneChain)
   {
-    if (pJIndex == INT_MAX) {doneChain = true; break;}
-    chain.push_back(&m_paths.linker[startJunction][pJIndex]);
-    pJIndex = m_paths.linker[startJunction][pJIndex].pJunc;
+    if (pJIndex == INT_MAX ||
+        &m_paths.linker[endJunction][pJIndex] == &m_paths.linker[endJunction][endJunction]) {doneChain = true; break;}
+    chain.insert(chain.begin(), &m_paths.linker[endJunction][pJIndex]);
+    pJIndex = m_paths.linker[endJunction][pJIndex].pJunc;
   }
-  chain.push_back(&m_paths.linker[startJunction][startJunction]);
+  chain.insert(chain.begin(), &m_paths.linker[endJunction][endJunction]);
   for (size_t i = 0; i < chain.size() - 1; i++)
   {
     int commonSection = INT_MAX;
@@ -502,8 +556,8 @@ void CrowdSim::getLinkerChain(int startJunction, int endJunction)
     if (chain[i]->sectionB == chain[i + 1]->sectionA) {sections.push_back(chain[i]->sectionB); continue;}
     if (chain[i]->sectionB == chain[i + 1]->sectionB) {sections.push_back(chain[i]->sectionB); continue;}
   }
-  m_paths.linkerSectionChain[startJunction][endJunction] = sections;
-  m_paths.linkerChains[startJunction][endJunction] = chain;
+  m_paths.linkerSectionChain[endJunction][startJunction] = sections;
+  m_paths.linkerChains[endJunction][startJunction] = chain;
 }
 
 CrowdSim::pathStorage::junctionMap CrowdSim::dijkstraLinker(int sourceJunction)
@@ -757,26 +811,26 @@ Path CrowdSim::getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal)
   }
 
   Path returnPath;
-  junction* endJunction = m_paths.linkerChains[selectedSource][selectedDestin][0];
+  junction* endJunction = m_paths.linkerChains[selectedDestin][selectedSource][0];
   std::array<int, 2> cIndexPair;
   if (endJunction->sectionA == destinSection) {cIndexPair[0] = convertVec2ToIndex(endJunction->nodeLocA);}
   else if (endJunction->sectionB == destinSection) {cIndexPair[0] = convertVec2ToIndex(endJunction->nodeLocB);}
   cIndexPair[1] = destinIndex;
   returnPath.sections.push_back(destinSection);
   returnPath.pairs.push_back(cIndexPair);
-  for (size_t i = 0; i < m_paths.linkerSectionChain[selectedSource][selectedDestin].size(); i++)
+  for (size_t i = 0; i < m_paths.linkerSectionChain[selectedDestin][selectedSource].size(); i++)
   {
-    junction* sJ = m_paths.linkerChains[selectedSource][selectedDestin][i];
-    junction* eJ = m_paths.linkerChains[selectedSource][selectedDestin][i + 1];
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== sJ->sectionA) {cIndexPair[1] = convertVec2ToIndex(sJ->nodeLocA);}
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== sJ->sectionB) {cIndexPair[1] = convertVec2ToIndex(sJ->nodeLocB);}
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== eJ->sectionA) {cIndexPair[0] = convertVec2ToIndex(eJ->nodeLocA);}
-    if (m_paths.linkerSectionChain[selectedSource][selectedDestin][i]== eJ->sectionB) {cIndexPair[0] = convertVec2ToIndex(eJ->nodeLocB);}
+    junction* sJ = m_paths.linkerChains[selectedDestin][selectedSource][i];
+    junction* eJ = m_paths.linkerChains[selectedDestin][selectedSource][i + 1];
+    if (m_paths.linkerSectionChain[selectedDestin][selectedSource][i]== sJ->sectionA) {cIndexPair[1] = convertVec2ToIndex(sJ->nodeLocA);}
+    if (m_paths.linkerSectionChain[selectedDestin][selectedSource][i]== sJ->sectionB) {cIndexPair[1] = convertVec2ToIndex(sJ->nodeLocB);}
+    if (m_paths.linkerSectionChain[selectedDestin][selectedSource][i]== eJ->sectionA) {cIndexPair[0] = convertVec2ToIndex(eJ->nodeLocA);}
+    if (m_paths.linkerSectionChain[selectedDestin][selectedSource][i]== eJ->sectionB) {cIndexPair[0] = convertVec2ToIndex(eJ->nodeLocB);}
     returnPath.pairs.push_back(cIndexPair);
-    returnPath.sections.push_back(m_paths.linkerSectionChain[selectedSource][selectedDestin][i]);
+    returnPath.sections.push_back(m_paths.linkerSectionChain[selectedDestin][selectedSource][i]);
   }
   returnPath.sections.push_back(sourceSection);
-  junction* startJunction = m_paths.linkerChains[selectedSource][selectedDestin].back();
+  junction* startJunction = m_paths.linkerChains[selectedDestin][selectedSource].back();
   if (startJunction->sectionA == sourceSection) {cIndexPair[1] = convertVec2ToIndex(startJunction->nodeLocA);}
   if (startJunction->sectionB == sourceSection) {cIndexPair[1] = convertVec2ToIndex(startJunction->nodeLocB);}
   cIndexPair[0] = sourceIndex;
