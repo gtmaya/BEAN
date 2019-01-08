@@ -77,6 +77,7 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
   }
 //  std::cout<<"Section : "<<section<<" currentPosition = "<<glm::to_string(currentPosition)<<" currentIndex = "<<currentIndex<<" destIndex = "<<destIndex<<'\n';
 //  std::cout<<"interpolatedVelocity = "<<glm::to_string(interpolatedVelocity)<<"\n\n";
+//  std::cout<<"sample = "<<glm::to_string(interpolatedVelocity)<<'\n';
   return interpolatedVelocity;
 }
 
@@ -84,7 +85,7 @@ void CrowdSim::update()
 {
   for (size_t i = 0; i < numPeeps; i++)
   {
-    if (m_arrPeeps[i].isDone()) {continue;}
+//    if (m_arrPeeps[i].isDone()) {continue;}
     if (m_arrPeeps[i].containerIsDirty())
     {
       for (size_t j = 0; j < m_arrPeeps[i].getOldContainers().size(); j++)
@@ -102,17 +103,22 @@ void CrowdSim::update()
     if (m_arrPeeps[i].needsPath())
     {
       glm::ivec2 dest = getRandomPoint();
-      m_arrPeeps[i].setPath(getPath(m_arrPeeps[i].getGridPosition(), dest), dest);
+      Path genPath = getPath(m_arrPeeps[i].getGridPosition(), dest);
+      while (genPath.sections[0] == INT_MAX) {genPath = getPath(m_arrPeeps[i].getGridPosition(), dest);}
+      m_arrPeeps[i].setPath(genPath, dest);
     }
+    if (!m_arrPeeps[i].isTraversingJunction())
+    {
 //    std::cout<<"gridPosition = "<<glm::to_string(m_arrPeeps[i].getGridPosition())<<'\n';
-    glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
-    if (!m_arrPeeps[i].isTraversingJunction()) {m_arrPeeps[i].setDirection(glm::normalize(x));}
+      glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
+      if (glm::length(x) > 0.01f) {m_arrPeeps[i].setDirection(glm::normalize(x));}
+    }
   }
   for (int i = 0; i < 1024; i++)
   {
     for (auto &p1 : m_peepSectionMap[i])
     {
-      if (p1->isDone()) {continue;}
+//      if (p1->isDone()) {continue;}
 //      std::cout<<"There are "<<m_peepSectionMap[i].size()<<" peeps here."<<'\n';
       for (auto &p2 : m_peepSectionMap[i])
       {
@@ -141,10 +147,11 @@ void CrowdSim::update()
   }
   for (int i = 0; i < numPeeps; i++)
   {
-    if (m_arrPeeps[i].isDone()) {continue;}
+//    if (m_arrPeeps[i].isDone()) {continue;}
     m_arrPeeps[i].update();
   }
 //  std::cout<<"\n\n\n\n";
+//  std::cout<<"Frame end\n\n";
 }
 
 int CrowdSim::m_junctionCounter = 0;
@@ -520,6 +527,7 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
           minDist = std::min(dist, minDist);
           if (minDist == dist) {index = j;}
         }
+        if (minDist > 2.f) {dX *= 100; dY *= 100;}
         dX = nodes[i].flowNbrs[index]->locX() - nodes[i].locX();
         dY = nodes[i].flowNbrs[index]->locY() - nodes[i].locY();
         flow[i] = glm::normalize(glm::vec2(dX, dY));
@@ -809,7 +817,12 @@ Path CrowdSim::getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal)
       }
     }
   }
-
+  if (shortestDist > 64516.f || shortestDist < 0.f)
+  {
+    Path error;
+    error.sections.push_back(INT_MAX);
+    return error;
+  }
   Path returnPath;
   junction* endJunction = m_paths.linkerChains[selectedDestin][selectedSource][0];
   std::array<int, 2> cIndexPair;

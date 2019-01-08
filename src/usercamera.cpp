@@ -2,7 +2,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 UserCamera::UserCamera() : m_position (127.5f, 320.f, 127.5f),
-                           m_rotation (glm::pi<float>(), glm::pi<float>() * -0.5f - 0.001f),
+                           m_rotation (glm::pi<float>(), glm::pi<float>() * -0.5f + 0.001f),
                            m_velocity (0.f, 0.f, 0.f),
                            m_acceleration (0.f, 0.f, 0.f),
                            m_target (-1.f, 0.f, 0.f),
@@ -19,8 +19,8 @@ UserCamera::UserCamera() : m_position (127.5f, 320.f, 127.5f),
 
 void UserCamera::reset()
 {
-  m_position = {127.5f, 20.f, 127.5f};
-  m_rotation = {glm::pi<float>(), glm::pi<float>() * -0.5f - 0.001f};
+  m_position = {127.5f, 320.f, 127.5f};
+  m_rotation = {glm::pi<float>(), glm::pi<float>() * -0.5f + 0.001f};
   m_velocity = {0.f, 0.f, 0.f};
   m_acceleration = {0.f, 0.f, 0.f};
   m_target = {-1.f, 0.f, 0.f};

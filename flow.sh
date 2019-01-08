@@ -37,8 +37,8 @@ else
   exit
 fi
 touch images/CURRENT$1
-if [[ $2 ]]; then
-  ./Crowdsim 1
+if [[ $1 ]]; then
+  ./Crowdsim $1
 else
   ./Crowdsim 0
 fi

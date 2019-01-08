@@ -44,8 +44,13 @@ ShaderProps* Peep::getShaderProps() const
 
 void Peep::update()
 {
+//  if (glm::length(m_direction) > 1.f) {std::cout<<"Direction length = "<<glm::length(m_direction)<<".  Normalising...\n";glm::normalize(m_direction);}
   m_hunger -= (float(std::rand()) / float(RAND_MAX)) * 0.004;
   m_hygiene -= (float(std::rand()) / float(RAND_MAX)) * 0.004;
+  if (m_hunger < 0.f) {m_hunger = 0.f;}
+  if (m_hygiene < 0.f) {m_hygiene = 0.f;}
+//  std::cout<<"DIRECTION = "<<glm::to_string(m_direction)<<'\n';
+//  std::cout<<"LEN DIR   = "<<glm::length(m_direction)<<'\n';
   m_velocity = 0.1f * m_direction;
   m_position += m_velocity;
   m_nearestTile.x = int(std::floor(m_position.x));
@@ -82,7 +87,7 @@ void Peep::update()
   {
     glm::vec2 peepToTarget {m_junctionTile.x + 0.5f - m_position.x, m_junctionTile.y + 0.5f - m_position.y};
     peepToTarget = glm::normalize(peepToTarget);
-    m_direction += peepToTarget;
+    setDirection(peepToTarget);
     if (glm::length(m_direction) > 1.f) {m_direction = glm::normalize(m_direction);}
 //    std::cout<<"Peep to Target = "<<glm::to_string(peepToTarget)<<'\n';
     if (m_position.x >= m_junctionTile.x + 0.45f && m_position.x <= m_junctionTile.x + 0.55f &&
@@ -93,6 +98,13 @@ void Peep::update()
       m_containerDirty = true;
     }
   }
+//  if (m_position.x > 256.f || m_position.x < 0.f || m_position.y > 256.f || m_position.y < 0.f) {std::cout<<"POSITION OUT OF BOUNDS\n";}
+//  if (glm::length(m_velocity) > 0.1f) {std::cout<<"SPEED OUT OF BOUNDS\n";}
+//  if (glm::length(m_direction) > 1.f) {std::cout<<"DIRECTION OUT OF BOUNDS\n";}
+  glm::vec2 delta = m_position - prevPos;
+  //std::cout<<"prev to this frame delta "<<glm::to_string(delta)<<'\n';
+//  if (glm::length(delta) > 0.2f) {std::cout<<"POSITION CHANGE TOO LARGE!\n";}
+  prevPos = m_position;
 }
 
 bool Peep::needsPath() const
@@ -139,9 +151,8 @@ int Peep::getLocalGoalIndex() const
 
 void Peep::setDirection(glm::vec2 direction)
 {
-  if (glm::length(direction) > 1.f) {direction;}
   m_direction += direction;
-  m_direction = glm::normalize(m_direction);
+  if (glm::length(m_direction) > 1.f) {m_direction = glm::normalize(m_direction);}
 }
 
 glm::ivec2 Peep::getDestinationTile() const

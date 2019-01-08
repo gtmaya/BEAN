@@ -301,6 +301,7 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     M = glm::mat4(1.f);
     //M = glm::rotate(M, glm::pi<float>() * 0.25f, {0.f, 1.f, 0.f});
     glm::vec2 pos2D = obj.getPosition();
+//    if (pos2D.x > 256.f || pos2D.y > 256.f || pos2D.x < 0.f || pos2D.y < 0.f) {std::cout<<"POSITION ERROR WHEN DRAWING\n";}
     M = glm::translate(M, {pos2D.x, 0.f, pos2D.y});
     MV = m_view * M;
     MVP = m_VP * M;

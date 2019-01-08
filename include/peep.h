@@ -15,6 +15,7 @@ class Peep
   private:
     int m_framesDone = 0;
     glm::vec2 m_position;
+    glm::vec2 prevPos {0.f, 0.f};
     glm::ivec2 m_nearestTile;
     glm::ivec2 m_destinationTile;
     glm::ivec2 m_currentDestinationTile;

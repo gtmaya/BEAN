@@ -6,6 +6,7 @@
 
 RenderScene r_scene;
 UserCamera r_camera;
+bool paused = true;
 
 void error_callback(int error, const char* description)
 {
@@ -84,6 +85,11 @@ void key_callback(GLFWwindow* window, int key, int /*scancode*/, int action, int
         r_scene.increaseFeedback(0.01f);
         break;
       }
+      case (GLFW_KEY_P):
+      {
+        paused = !paused;
+        break;
+      }
     }
   }
   r_camera.handleKey(key, action);
@@ -95,8 +101,10 @@ void resize_callback(GLFWwindow */*window*/, int width, int height)
   r_scene.resizeGL(width,height);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+  std::string title;
+  if (argc > 1) {title = std::string(argv[1]);}
   if (!glfwInit())
   {
     // Initialisation failed
@@ -107,7 +115,7 @@ int main()
   glfwSetErrorCallback(error_callback);
 
   // Set our OpenGL version
-  //glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
+//  glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
   //glfwWindowHint(GLFW_SAMPLES, 16);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -115,7 +123,7 @@ int main()
   int width = 1000; int height = 1000;
   GLFWwindow* window = glfwCreateWindow(width,
                                         height,
-                                        "Temporal Anti Aliasing Demo",
+                                        title.c_str(),
                                         nullptr,
                                         nullptr);
 
@@ -164,15 +172,15 @@ int main()
   while (!glfwWindowShouldClose(window))
   {
     glfwPollEvents();
-
-    r_camera.update();
-    r_scene.setViewMatrix(r_camera.viewMatrix());
-    r_scene.setProjMatrix(r_camera.projMatrix());
-    r_scene.setCubeMatrix(r_camera.cubeMatrix());
-    r_scene.setCameraLocation(r_camera.getLocation());
-
-    r_scene.paintGL();
-
+    if (!paused)
+    {
+      r_camera.update();
+      r_scene.setViewMatrix(r_camera.viewMatrix());
+      r_scene.setProjMatrix(r_camera.projMatrix());
+      r_scene.setCubeMatrix(r_camera.cubeMatrix());
+      r_scene.setCameraLocation(r_camera.getLocation());
+      r_scene.paintGL();
+    }
     glfwSwapBuffers(window);
   }
 
