@@ -172,15 +172,12 @@ int main(int argc, char *argv[])
   while (!glfwWindowShouldClose(window))
   {
     glfwPollEvents();
-    if (!paused)
-    {
-      r_camera.update();
-      r_scene.setViewMatrix(r_camera.viewMatrix());
-      r_scene.setProjMatrix(r_camera.projMatrix());
-      r_scene.setCubeMatrix(r_camera.cubeMatrix());
-      r_scene.setCameraLocation(r_camera.getLocation());
-      r_scene.paintGL();
-    }
+    r_camera.update();
+    r_scene.setViewMatrix(r_camera.viewMatrix());
+    r_scene.setProjMatrix(r_camera.projMatrix());
+    r_scene.setCubeMatrix(r_camera.cubeMatrix());
+    r_scene.setCameraLocation(r_camera.getLocation());
+    r_scene.paintGL(paused);
     glfwSwapBuffers(window);
   }
 

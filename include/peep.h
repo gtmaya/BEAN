@@ -61,6 +61,7 @@ class Peep
     bool containerIsDirty() const;
     void makeContainerClean();
     int getNeediestNeed() const;
+    glm::vec2 getDirection() const;
 };
 
 #endif

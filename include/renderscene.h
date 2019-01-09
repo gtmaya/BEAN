@@ -107,7 +107,7 @@ class RenderScene
   public:
     RenderScene();
     ~RenderScene();
-    void paintGL() noexcept;
+    void paintGL(bool paused) noexcept;
     void initGL() noexcept;
     void resizeGL(GLint /*width*/, GLint /*height*/) noexcept;
     void setViewMatrix(glm::mat4 _view);

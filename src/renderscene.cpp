@@ -77,16 +77,8 @@ void RenderScene::initGL() noexcept
                      "shaders/blit_v.glsl",
                      "shaders/blit_f.glsl");
 
-  initEnvironment();
-  initTexture(taa_checkerboard, m_checkerboardTex, "images/checkerboard.jpg");
-  initTexture(taa_dirt, m_dirtTex, "images/dirt.jpg");
-
   shader->use("beckmannShader");
   GLuint shaderID = shader->getProgramID("beckmannShader");
-
-  glUniform3fv(glGetUniformLocation(shaderID, "lightCol"),
-               int(m_lightCol.size()),
-               glm::value_ptr(m_lightCol[0]));
 
   glUniform3fv(glGetUniformLocation(shaderID, "lightPos"),
                int(m_lightCol.size()),
@@ -98,9 +90,9 @@ void RenderScene::initGL() noexcept
   m_pixelSizeScreenSpace.y = 1.f / m_height;
 }
 
-void RenderScene::paintGL() noexcept
+void RenderScene::paintGL(bool paused) noexcept
 {
-  m_crowdSim->update();
+  if (!paused) {m_crowdSim->update();}
   static int count = 0;
   //Common stuff
   if (m_isFBODirty)
@@ -379,7 +371,7 @@ void RenderScene::renderScene(size_t _activeAAFBO)
                1,
                glm::value_ptr(glm::vec3(1.f, 1.f, 1.f)));
   glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
-  m_floorMesh->draw();
+//  m_floorMesh->draw();
   m_VP = m_proj * m_view;
 }
 
@@ -414,54 +406,6 @@ void RenderScene::resetTAA()
 {
   m_aaDirty = true;
 }
-
-void RenderScene::initEnvironment()
-{
-  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-  glActiveTexture(GL_TEXTURE0);
-  glGenTextures(1, &m_envTex);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, m_envTex);
-
-  initEnvironmentSide(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, "images/nz.png");
-  initEnvironmentSide(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, "images/pz.png");
-  initEnvironmentSide(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "images/ny.png");
-  initEnvironmentSide(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, "images/py.png");
-  initEnvironmentSide(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, "images/nx.png");
-  initEnvironmentSide(GL_TEXTURE_CUBE_MAP_POSITIVE_X, "images/px.png");
-
-  glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_AUTO_GENERATE_MIPMAP, GL_TRUE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  GLfloat anisotropy;
-  glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &anisotropy);
-  glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY, anisotropy);
-
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  shader->use("environmentShader");
-  shader->setUniform("envMap", 0);
-  shader->use("beckmannShader");
-  shader->setUniform("envMap", 0);
-}
-
-void RenderScene::initEnvironmentSide(GLenum _target, const char *_filename)
-{
-    ngl::Image img(_filename);
-    glTexImage2D(_target,
-                 0,
-                 int(img.format()),
-                 int(img.width()),
-                 int(img.height()),
-                 0,
-                 img.format(),
-                 GL_UNSIGNED_BYTE,
-                 img.getPixels());
-}
-
 
 void RenderScene::initFBO(size_t _fboID, GLenum _textureA, GLenum _textureB)
 {

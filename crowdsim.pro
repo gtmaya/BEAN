@@ -37,7 +37,8 @@ DISTFILES +=    $OTHER_FILES \
                 shaders/taa_v.glsl \
                 shaders/msaa_f.glsl \
                 shaders/msaa_v.glsl \
-                src/mapreader.py
+                src/mapreader.py \
+                src/testMap.cpp
 
 QMAKE_CXXFLAGS+=$$system(sdl2-config  --cflags)
 message(output from sdl2-config --cflags added to CXXFLAGS= $$QMAKE_CXXFLAGS)

@@ -1,4 +1,5 @@
 #include "peep.h"
+#include "map.h"
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 
@@ -19,8 +20,11 @@ Peep::Peep() : m_position     ({1.f, 1.f}),
                m_direction    ({0.f, 0.f})
 {
   m_speed = (float(std::rand()) / float(RAND_MAX)) * 0.1f + 0.1f;
-  m_position.x = float(std::rand()) / float(RAND_MAX) * 254.f + 1.f;
-  m_position.y = float(std::rand()) / float(RAND_MAX) * 254.f + 1.f;
+  m_position.x = float(std::rand()) / float(RAND_MAX) * 1.f + 1.f;
+  m_position.y = float(std::rand()) / float(RAND_MAX) * 1.f + 1.f;
+  size_t numEmptySpaces = emptySpaces.size();
+  int index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);
+  m_position = emptySpaces[index];
   m_nearestTile.x = int(std::floor(m_position.x));
   m_nearestTile.y = int(std::floor(m_position.y));
   m_shaderProps->m_diffuseColour = colours[int(float(std::rand()) / float(RAND_MAX) * 5.f)] * 0.00392156862745f * (float(std::rand()) / float(RAND_MAX) * 0.5f + 0.5f);
@@ -56,12 +60,13 @@ void Peep::update()
   m_nearestTile.x = int(std::floor(m_position.x));
   m_nearestTile.y = int(std::floor(m_position.y));
 //  std::cout<<"CURRENTLY AT "<<glm::to_string(m_position)<<'\n';
+//  std::cout<<"             "<<glm::to_string(m_nearestTile)<<'\n';
 //  std::cout<<"CURRENT DEST "<<glm::to_string(m_currentDestinationTile)<<'\n';
 //  std::cout<<"traversing junction = "<<m_traversingJunction<<'\n';
   if (!m_traversingJunction)
   {
-    if (m_position.x >= m_currentDestinationTile.x + 0.45f && m_position.x <= m_currentDestinationTile.x + 0.55f &&
-        m_position.y >= m_currentDestinationTile.y + 0.45f && m_position.y <= m_currentDestinationTile.y + 0.55f)
+    if (m_position.x >= m_currentDestinationTile.x + 0.41f && m_position.x <= m_currentDestinationTile.x + 0.59f &&
+        m_position.y >= m_currentDestinationTile.y + 0.41f && m_position.y <= m_currentDestinationTile.y + 0.59f)
     {
       if (m_path.sections.size() > 1)
       {
@@ -90,8 +95,8 @@ void Peep::update()
     setDirection(peepToTarget);
     if (glm::length(m_direction) > 1.f) {m_direction = glm::normalize(m_direction);}
 //    std::cout<<"Peep to Target = "<<glm::to_string(peepToTarget)<<'\n';
-    if (m_position.x >= m_junctionTile.x + 0.45f && m_position.x <= m_junctionTile.x + 0.55f &&
-        m_position.y >= m_junctionTile.y + 0.45f && m_position.y <= m_junctionTile.y + 0.55f)
+    if (m_position.x >= m_junctionTile.x + 0.41f && m_position.x <= m_junctionTile.x + 0.59f &&
+        m_position.y >= m_junctionTile.y + 0.41f && m_position.y <= m_junctionTile.y + 0.59f)
     {
       m_vecContainerRemoveIDs.push_back(m_oldSection);
       m_traversingJunction = false;
@@ -105,6 +110,7 @@ void Peep::update()
   //std::cout<<"prev to this frame delta "<<glm::to_string(delta)<<'\n';
 //  if (glm::length(delta) > 0.2f) {std::cout<<"POSITION CHANGE TOO LARGE!\n";}
   prevPos = m_position;
+//  m_direction *= 0.99f;
 }
 
 bool Peep::needsPath() const
@@ -202,4 +208,9 @@ int Peep::getNeediestNeed() const
   {
     return 3;
   }
+}
+
+glm::vec2 Peep::getDirection() const
+{
+  return m_direction;
 }
