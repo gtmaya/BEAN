@@ -18,7 +18,7 @@ class CrowdSim
     CrowdSim();
     void update();
     void calculateRoutes(bool printFlag);
-    enum crowdsimEnum {numPeeps = 10000};
+    enum crowdsimEnum {numPeeps = 2000};
     std::array<Peep, numPeeps> getPeeps() const;
   private:
     std::array<Peep, numPeeps> m_arrPeeps;
@@ -92,7 +92,7 @@ class CrowdSim
     void generateLinkerMap();
     int convertVec2ToIndex(glm::ivec2 vec);
     Path getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal);
-    glm::ivec2 getRandomPoint();
+    glm::ivec2 getRandomPoint(int need);
     glm::vec2 interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const;
 };
 

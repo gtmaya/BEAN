@@ -18,100 +18,167 @@ std::array<Peep, CrowdSim::numPeeps> CrowdSim::initPeeps()
   return peeps;
 }
 
-glm::ivec2 CrowdSim::getRandomPoint()
+glm::ivec2 CrowdSim::getRandomPoint(int need)
 {
   size_t numEmptySpaces = emptySpaces.size();
   int index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);
   while (destinationTaken[index]) {index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);}
   destinationTaken[index] = true;
-  return emptySpaces[index];
+  if (need == 2) {return foodSpaces[index];}
+  else if (need == 3) {return hygieneSpaces[index];}
+//  return {254.f, 1.f};
 }
 
 glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const
 {
   glm::ivec2 currentLocaLTile = {currentIndex % 8 + (8 * (section % 32)), (currentIndex / 8) + ((section / 32) * 8)};
-//  std::cout<<"Local loc = "<<glm::to_string(currentLocaLTile)<<'\n';
   pathStorage::singleFlow flow = m_paths.allFlows[section][destIndex];
   glm::vec2 distFromTileCentre {fmod(currentPosition.x, 1.f), fmod(currentPosition.y, 1.f)};
   distFromTileCentre.x -= 0.5f;
   distFromTileCentre.y -= 0.5f;
   float vHMix = (((std::abs(distFromTileCentre.x) - std::abs(distFromTileCentre.y)) / std::max(std::abs(distFromTileCentre.x), std::abs(distFromTileCentre.y))) + 1) * 0.5;
-//  std::cout<<"h = "<<vHMix<<'\n';
-//  std::cout<<"d = "<<glm::to_string(distFromTileCentre)<<'\n';
   glm::vec2 interpolatedVelocity;
   glm::vec2 thisTileVelocity = flow[currentIndex];
-//  std::cout<<"m = "<<glm::to_string(thisTileVelocity)<<'\n';
   if (distFromTileCentre.x > 0.f)
   {
     glm::vec2 rightSample = {-100.f, 0.f};
-    if (currentIndex % 8 != 7) {rightSample = flow[currentIndex + 1];}
-//    std::cout<<"r = "<<glm::to_string(rightSample)<<'\n';
+    if (currentIndex % 8 != 7)
+    {
+      rightSample = flow[currentIndex + 1];
+      if (glm::length(rightSample) > 2.f)
+      {
+        rightSample.x = -1.f * distFromTileCentre.x;
+        rightSample.y = -1.f * distFromTileCentre.y;
+        rightSample = glm::normalize(rightSample);
+        rightSample *= 100.f;
+      }
+    }
     if (distFromTileCentre.y > 0.f)
     {
       glm::vec2 topSample = {0.f, -100.f};
-      if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
-//      std::cout<<"t = "<<glm::to_string(topSample)<<'\n';
+      if (currentIndex < 56)
+      {
+        topSample = flow[currentIndex + 8];
+        if (glm::length(topSample) > 2.f)
+        {
+          topSample.x = -1.f * distFromTileCentre.x;
+          topSample.y = -1.f * distFromTileCentre.y;
+          topSample = glm::normalize(topSample);
+          topSample *= 100.f;
+        }
+      }
       glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, std::abs(distFromTileCentre.x));
-//      std::cout<<"r = "<<rightSample.x<<", "<<rightSample.y<<'\n';
-//      std::cout<<"t = "<<topSample.x<<", "<<topSample.y<<'\n';
-//      std::cout<<"mV = "<<glm::to_string(mixVert)<<'\n';
-//      std::cout<<"mH = "<<glm::to_string(mixHorz)<<'\n';
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
     else
     {
       glm::vec2 bottomSample = {0.f, 100.f};
-      if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
-//      std::cout<<"b = "<<glm::to_string(bottomSample)<<'\n';
+      if (currentIndex > 7)
+      {
+        bottomSample = flow[currentIndex - 8];
+        if (glm::length(bottomSample) > 2.f)
+        {
+          bottomSample.x = -1.f * distFromTileCentre.x;
+          bottomSample.y = -1.f * distFromTileCentre.y;
+          bottomSample = glm::normalize(bottomSample);
+          bottomSample *= 100.f;
+        }
+      }
       glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, rightSample, std::abs(distFromTileCentre.x));
-//      std::cout<<"r = "<<rightSample.x<<", "<<rightSample.y<<'\n';
-//      std::cout<<"b = "<<bottomSample.x<<", "<<bottomSample.y<<'\n';
-//      std::cout<<"mV = "<<glm::to_string(mixVert)<<'\n';
-//      std::cout<<"mH = "<<glm::to_string(mixHorz)<<'\n';
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
   }
   else
   {
     glm::vec2 leftSample = {100.f, 0.f};
-    if (currentIndex % 8 != 0) {leftSample = flow[currentIndex - 1];}
-//    std::cout<<"l = "<<glm::to_string(leftSample)<<'\n';
+    if (currentIndex % 8 != 0)
+    {
+      leftSample = flow[currentIndex - 1];
+      if (glm::length(leftSample) > 2.f)
+      {
+        leftSample.x = -1.f * distFromTileCentre.x;
+        leftSample.y = -1.f * distFromTileCentre.y;
+        leftSample = glm::normalize(leftSample);
+        leftSample *= 100.f;
+      }
+    }
     if (distFromTileCentre.y > 0.f)
     {
       glm::vec2 topSample = {0.f, -100.f};
-      if (currentIndex < 56) {topSample = flow[currentIndex + 8];}
-//      std::cout<<"t = "<<glm::to_string(topSample)<<'\n';
+      if (currentIndex < 56)
+      {
+        topSample = flow[currentIndex + 8];
+        if (glm::length(topSample) > 2.f)
+        {
+          topSample.x = -1.f * distFromTileCentre.x;
+          topSample.y = -1.f * distFromTileCentre.y;
+          topSample = glm::normalize(topSample);
+          topSample *= 100.f;
+        }
+      }
       glm::vec2 mixVert = glm::mix(thisTileVelocity, topSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, std::abs(distFromTileCentre.x));
-//      std::cout<<"l = "<<leftSample.x<<", "<<leftSample.y<<'\n';
-//      std::cout<<"t = "<<topSample.x<<", "<<topSample.y<<'\n';
-//      std::cout<<"mV = "<<glm::to_string(mixVert)<<'\n';
-//      std::cout<<"mH = "<<glm::to_string(mixHorz)<<'\n';
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
     else
     {
       glm::vec2 bottomSample = {0.f, 100.f};
-      if (currentIndex > 7) {bottomSample = flow[currentIndex - 8];}
-//      std::cout<<"b = "<<glm::to_string(bottomSample)<<'\n';
+      if (currentIndex > 7)
+      {
+        bottomSample = flow[currentIndex - 8];
+        if (glm::length(bottomSample) > 2.f)
+        {
+          bottomSample.x = -1.f * distFromTileCentre.x;
+          bottomSample.y = -1.f * distFromTileCentre.y;
+          bottomSample = glm::normalize(bottomSample);
+          bottomSample *= 100.f;
+        }
+      }
       glm::vec2 mixVert = glm::mix(thisTileVelocity, bottomSample, std::abs(distFromTileCentre.y));
       glm::vec2 mixHorz = glm::mix(thisTileVelocity, leftSample, std::abs(distFromTileCentre.x));
-//      std::cout<<"l = "<<leftSample.x<<", "<<leftSample.y<<'\n';
-//      std::cout<<"b = "<<bottomSample.x<<", "<<bottomSample.y<<'\n';
-//      std::cout<<"mV = "<<glm::to_string(mixVert)<<'\n';
-//      std::cout<<"mH = "<<glm::to_string(mixHorz)<<'\n';
       interpolatedVelocity = glm::mix(mixVert, mixHorz, vHMix);
     }
   }
-//  std::cout<<"Section : "<<section<<" currentPosition = "<<glm::to_string(currentPosition)<<" currentIndex = "<<currentIndex<<" destIndex = "<<destIndex<<'\n';
-//  std::cout<<"sample = "<<glm::to_string(interpolatedVelocity)<<'\n';
   return interpolatedVelocity;
 }
 
 void CrowdSim::update()
 {
+  for (int i = 0; i < 1024; i++)
+  {
+    for (auto &p1 : m_peepSectionMap[i])
+    {
+//      if (p1->isDone()) {continue;}
+//      std::cout<<"There are "<<m_peepSectionMap[i].size()<<" peeps here."<<'\n';
+      for (auto &p2 : m_peepSectionMap[i])
+      {
+        if (p1 == p2) {continue;}
+        glm::vec2 dVec = p1->getPosition() - p2->getPosition();
+//        std::cout<<"dVec = "<<glm::to_string(dVec);
+//        std::cout<<"length = "<<glm::length(dVec)<<'\n';
+        float avoidance;
+        if (glm::length(dVec) > 1.5f)
+        {
+          avoidance = 0.f;
+        }
+        else
+        {
+          avoidance = std::pow(0.5f, glm::length(dVec) * 2.f);
+        }
+//        std::cout<<"avoidance = "<<avoidance<<'\n';
+        if (avoidance != 0.f)
+        {
+          if (glm::length(dVec) > 0.001f)
+          {
+            dVec = glm::normalize(dVec);
+            p1->setDirection(avoidance * dVec);
+          }
+        }
+      }
+    }
+  }
   for (size_t i = 0; i < numPeeps; i++)
   {
 //    if (m_arrPeeps[i].isDone()) {continue;}
@@ -131,54 +198,19 @@ void CrowdSim::update()
     }
     if (m_arrPeeps[i].needsPath())
     {
-      glm::ivec2 dest = getRandomPoint();
+      glm::ivec2 dest = getRandomPoint(m_arrPeeps[i].getNeediestNeed());
       Path genPath = getPath(m_arrPeeps[i].getGridPosition(), dest);
       while (genPath.sections[0] == INT_MAX) {genPath = getPath(m_arrPeeps[i].getGridPosition(), dest);}
-      m_arrPeeps[i].setPath(genPath, dest);
+      m_arrPeeps[i].setPath(genPath, dest, m_arrPeeps[i].getNeediestNeed());
     }
     if (!m_arrPeeps[i].isTraversingJunction())
     {
 //    std::cout<<"gridPosition = "<<glm::to_string(m_arrPeeps[i].getGridPosition())<<'\n';
       glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
 //      std::cout<<"x = "<<glm::to_string(x)<<" length = "<<glm::length(x)<<'\n';
-      if (glm::length(x) > 1.f) {x = glm::normalize(x);}
+//      if (glm::length(x) > 1.f) {x = glm::normalize(x);}
       if (glm::length(x) > 0.001f) {m_arrPeeps[i].setDirection(x);}
     }
-  }
-  for (int i = 0; i < 1024; i++)
-  {
-    for (auto &p1 : m_peepSectionMap[i])
-    {
-//      if (p1->isDone()) {continue;}
-//      std::cout<<"There are "<<m_peepSectionMap[i].size()<<" peeps here."<<'\n';
-      for (auto &p2 : m_peepSectionMap[i])
-      {
-        if (p1 == p2) {continue;}
-        glm::vec2 dVec = p1->getPosition() - p2->getPosition();
-//        std::cout<<"dVec = "<<glm::to_string(dVec);
-//        std::cout<<"length = "<<glm::length(dVec)<<'\n';
-        float avoidance;
-        if (glm::length(dVec) > 2.f)
-        {
-          avoidance = 0.f;
-        }
-        else
-        {
-          avoidance = std::pow(0.5f, glm::length(dVec));
-        }
-//        std::cout<<"avoidance = "<<avoidance<<'\n';
-        if (avoidance != 0.f)
-        {
-          if (glm::length(dVec) > 0.001f)
-          {
-            dVec = glm::normalize(dVec);
-            p1->setDirection(avoidance * dVec);
-          }
-        }
-      }
-    }
-//    size_t ps = m_peepSectionMap[i].size();
-//    if (ps > 0) {std::cout<<"There are "<<ps<<" peeps in section "<<i<<'\n';}
   }
   for (int i = 0; i < numPeeps; i++)
   {

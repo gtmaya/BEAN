@@ -18,9 +18,8 @@ class RenderScene
     std::chrono::high_resolution_clock::time_point m_prevFrameTime;
     std::array<std::array<GLuint, 4>, 3> m_arrFBO;
     enum m_taaFBOIndex {taa_fboID = 0, taa_fboTextureID, taa_fboDepthID};
-    GLuint m_checkerboardTex;
-    GLuint m_dirtTex;
-    enum m_textures {taa_none = 0, taa_checkerboard = 7, taa_dirt};
+    GLuint m_floorTex;
+    enum m_textures {taa_none = 0, taa_floorTex= 7};
     size_t m_renderFBO = 0;
     size_t m_aaFBO1    = 1;
     size_t m_aaFBO2    = 2;

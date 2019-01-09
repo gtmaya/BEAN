@@ -30,6 +30,7 @@ if [ ! -f images/CURRENT$1 ]; then
     echo "Program already setup for use with $1"
 fi
 echo "Compiling main program..."
+mkdir executable
 if qmake; make clean; make -j12; then 
   echo "Program compiled!";
 else 
@@ -38,7 +39,7 @@ else
 fi
 touch images/CURRENT$1
 if [[ $1 ]]; then
-  ./Crowdsim $1
+  executable/./Crowdsim $1
 else
-  ./Crowdsim 0
+  executable/./Crowdsim 0
 fi

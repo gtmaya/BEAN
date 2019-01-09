@@ -8,7 +8,7 @@ int Peep::temp = 0;
 std::array<glm::vec3, 5> colours {glm::vec3(27, 153, 139), glm::vec3(255, 255, 220), glm::vec3(255, 253, 130), glm::vec3(255, 155, 113), glm::vec3(232, 72, 85)};
 
 Peep::Peep() : m_position     ({1.f, 1.f}),
-               m_shaderProps  (new ShaderProps({1.f, 1.f, 1.f},
+               m_shaderProps  (new ShaderProps({1.f, 0.f, 1.f},
                                               {1.f, 1.f, 1.f},
                                               1.f,
                                               0.1f,
@@ -19,7 +19,9 @@ Peep::Peep() : m_position     ({1.f, 1.f}),
                m_velocity     ({0.f, 0.f}),
                m_direction    ({0.f, 0.f})
 {
-  m_speed = (float(std::rand()) / float(RAND_MAX)) * 0.1f + 0.1f;
+  m_hunger -= (float(std::rand()) / float(RAND_MAX)) * 0.5f;
+  m_hygiene -= (float(std::rand()) / float(RAND_MAX)) * 0.5f;
+  m_speed = (float(std::rand()) / float(RAND_MAX)) * 0.05f + 0.05f;
   m_position.x = float(std::rand()) / float(RAND_MAX) * 1.f + 1.f;
   m_position.y = float(std::rand()) / float(RAND_MAX) * 1.f + 1.f;
   size_t numEmptySpaces = emptySpaces.size();
@@ -49,13 +51,16 @@ ShaderProps* Peep::getShaderProps() const
 void Peep::update()
 {
 //  if (glm::length(m_direction) > 1.f) {std::cout<<"Direction length = "<<glm::length(m_direction)<<".  Normalising...\n";glm::normalize(m_direction);}
-  m_hunger -= (float(std::rand()) / float(RAND_MAX)) * 0.004;
-  m_hygiene -= (float(std::rand()) / float(RAND_MAX)) * 0.004;
+  m_hunger -= (float(std::rand()) / float(RAND_MAX)) * 0.001f;
+  m_hygiene -= (float(std::rand()) / float(RAND_MAX)) * 0.001f;
+  if (m_hunger < 0.f) {m_hunger = 0.f;}
+  if (m_hygiene < 0.f) {m_hygiene = 0.f;}
+//  m_shaderProps->m_diffuseColour = {m_hunger, 0.f, m_hygiene};
   if (m_hunger < 0.f) {m_hunger = 0.f;}
   if (m_hygiene < 0.f) {m_hygiene = 0.f;}
 //  std::cout<<"DIRECTION = "<<glm::to_string(m_direction)<<'\n';
 //  std::cout<<"LEN DIR   = "<<glm::length(m_direction)<<'\n';
-  m_velocity = 0.1f * m_direction;
+  m_velocity = m_speed * m_direction;
   m_position += m_velocity;
   m_nearestTile.x = int(std::floor(m_position.x));
   m_nearestTile.y = int(std::floor(m_position.y));
@@ -85,6 +90,24 @@ void Peep::update()
       {
         m_done = true;
         m_shaderProps->m_diffuseColour = glm::vec3(0.f, 1.f, 0.f);
+        if (m_activeNeed == 2)
+        {
+          m_hunger += 0.01f;
+          if (m_hunger > 1.f)
+          {
+//            m_done = false;
+//            m_hasPath = false;
+          }
+        }
+        else if (m_activeNeed == 3)
+        {
+          m_hygiene += 0.01f;
+          if (m_hygiene > 1.f)
+          {
+//            m_done = false;
+//            m_hasPath = false;
+          }
+        }
       }
     }
   }
@@ -118,7 +141,7 @@ bool Peep::needsPath() const
   return !m_hasPath;
 }
 
-void Peep::setPath(Path p, glm::ivec2 destTile)
+void Peep::setPath(Path p, glm::ivec2 destTile, int need)
 {
 //  std::cout<<"\n\n\n\n";
 //  for (size_t i = 0; i < p.pairs.size(); i++)
@@ -138,6 +161,7 @@ void Peep::setPath(Path p, glm::ivec2 destTile)
   m_destinationIndex = p.pairs[0][1];
   m_destinationTile = destTile;
   m_currentDestinationTile = {m_currentGoalIndex % 8 + (8 * (m_currentSection % 32)), (m_currentGoalIndex / 8) + ((m_currentSection / 32) * 8)};
+  m_activeNeed = need;
 }
 
 int Peep::getDestinationIndex() const

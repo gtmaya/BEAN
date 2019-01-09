@@ -1,6 +1,6 @@
 include(includes.pri)
 
-TARGET =        Crowdsim
+TARGET =        executable/Crowdsim
 
 OBJECTS_DIR =   obj
 

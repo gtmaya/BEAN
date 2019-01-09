@@ -41,6 +41,7 @@ class Peep
     std::vector<int> m_vecContainerRemoveIDs;
     std::vector<int> m_vecActiveContainers;
     bool m_containerDirty = true;
+    int m_activeNeed;
   public:
     glm::vec2 getPosition() const;
     glm::ivec2 getGridPosition() const;
@@ -49,7 +50,7 @@ class Peep
     Peep();
     void update();
     bool needsPath() const;
-    void setPath(Path p, glm::ivec2 destTile);
+    void setPath(Path p, glm::ivec2 destTile, int need);
     int getDestinationIndex() const;
     int getCurrentSection() const;
     int getLocalGoalIndex() const;

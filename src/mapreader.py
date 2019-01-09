@@ -33,19 +33,28 @@ for x in range(width):
 #Convert data
 mapGrid = []
 emptySpaces = []
+foodSpaces = []
+hygieneSpaces = []
 x = 0
 y = 0
 for i in range(len(allPixels)):
   x = i % 256
   if (i != 0 and x == 0):
     y += 1
-  if allPixels[i][0] < 128:
+  if allPixels[i][0] < 128 and allPixels[i][1] < 128 and allPixels[i][2] < 128:
     mapGrid.append(1)
     continue
-  elif 128 <= allPixels[i][0]:
+  if 128 <= allPixels[i][0]:
     mapGrid.append(0)
     emptySpaces.append([x, y])
-    continue
+  if 128 <= allPixels[i][1]:
+    mapGrid.append(0)
+    emptySpaces.append([x, y])
+    foodSpaces.append([x, y])
+  if 128 <= allPixels[i][2]:
+    mapGrid.append(0)
+    emptySpaces.append([x, y])
+    hygieneSpaces.append([x, y])
 
 #Reshuffle data
 shuffleGrid = []
@@ -73,6 +82,20 @@ mapString += "static std::array<glm::ivec2, "+str(len(emptySpaces))+"> emptySpac
 for i in range(len(emptySpaces)):
   mapString += "glm::ivec2(" + str(emptySpaces[i][0]) + ", " + str(emptySpaces[i][1]) + ")\n"
   if (i != len(emptySpaces) - 1):
+    mapString += ","
+mapString += "};\n"
+
+mapString += "static std::array<glm::ivec2, "+str(len(foodSpaces))+"> foodSpaces{\n"
+for i in range(len(foodSpaces)):
+  mapString += "glm::ivec2(" + str(foodSpaces[i][0]) + ", " + str(foodSpaces[i][1]) + ")\n"
+  if (i != len(foodSpaces) - 1):
+    mapString += ","
+mapString += "};\n"
+
+mapString += "static std::array<glm::ivec2, "+str(len(hygieneSpaces))+"> hygieneSpaces{\n"
+for i in range(len(hygieneSpaces)):
+  mapString += "glm::ivec2(" + str(hygieneSpaces[i][0]) + ", " + str(hygieneSpaces[i][1]) + ")\n"
+  if (i != len(hygieneSpaces) - 1):
     mapString += ","
 mapString += "};\n"
 
