@@ -17,13 +17,12 @@ class CrowdSim
   public:
     CrowdSim();
     void update();
-    void calculateRoutes(bool printFlag);
-    enum crowdsimEnum {numPeeps = 2000};
-    std::array<Peep, numPeeps> getPeeps() const;
+    void calculateRoutes();
+    enum crowdsimEnum {numPeeps = 2500};
+    std::array<Peep*, numPeeps> getPeeps() const;
   private:
-    std::array<Peep, numPeeps> m_arrPeeps;
+    std::array<Peep*, numPeeps> m_arrPeeps;
     std::array<std::vector<Peep*>, 1024> m_peepSectionMap;
-    std::array<Peep, numPeeps> initPeeps();
     bool m_gridDone = false;
     bool m_gridRunning = false;
     bool m_linkerDone = false;
@@ -59,7 +58,6 @@ class CrowdSim
       int junctionID;
       junction();
     };
-    static int m_junctionCounter;
     struct pathStorage
     {
       typedef std::array<glm::vec2, 64> singleFlow;
@@ -78,22 +76,30 @@ class CrowdSim
       std::array<std::array<std::vector<int>, 1984>, 1984> linkerSectionChain;
       std::array<junction, 1984> referenceJunctions;
     };
+    static int m_junctionCounter;
     pathStorage m_paths;
     std::array<std::vector<int>, 1024> m_sectionMap;
-    void spinDijkstra();
-    void spinLinker();
-    float vectorLength(glm::vec2 a);
+    std::array<Peep*, numPeeps> initPeeps();
     std::vector<node> dijkstraGrid(int sectionNo, int sourceX, int sourceY);
     std::array<std::vector<node>, 64> calculateMap(int sectionNo);
     pathStorage::singleFlow generateFlow(std::vector<node> nodes, int goalX, int goalY);
-    void printFlows();
-    void getLinkerChain(int startJunction, int endJunction);
-    pathStorage::junctionMap dijkstraLinker(int sourceJunction);
+    void spinDijkstra();
+    void spinLinker();
     void generateLinkerMap();
+    void getLinkerChain(int startJunction, int endJunction);
+    float vectorLength(glm::vec2 a);
+    pathStorage::junctionMap dijkstraLinker(int sourceJunction);
     int convertVec2ToIndex(glm::ivec2 vec);
     Path getPath(glm::ivec2 sourceGlobal, glm::ivec2 destinGlobal);
-    glm::ivec2 getRandomPoint(int need);
+    glm::ivec2 getRandomPoint(Peep *peep);
     glm::vec2 interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const;
+    std::array<std::array<std::vector<glm::ivec2>, 1024>, 4> m_lightSectionMap;
+    int m_lightSetABUpdates = 600;
+    int m_lightSetCDUpdates = 600;
+    bool m_lightSetAActive = true;
+    bool m_lightSetBActive = false;
+    bool m_lightSetCActive = true;
+    bool m_lightSetDActive = false;
 };
 
 #endif

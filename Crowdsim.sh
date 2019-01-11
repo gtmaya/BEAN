@@ -1,6 +1,6 @@
 #!/bin/bash
-if [ ! -f images/CURRENT$1 ]; then
-  rm -f images/*CURRENT*
+if [ ! -f maps/CURRENT$1 ]; then
+  rm -f maps/*CURRENT*
   echo "Generating map..."
   python src/mapreader.py $1
   ret=$?
@@ -37,7 +37,7 @@ if [ ! -f images/CURRENT$1 ]; then
   else
     echo "Program already setup for use with $1"
 fi
-touch images/CURRENT$1
+touch maps/CURRENT$1
 if [[ $1 ]]; then
   executable/./Crowdsim $1
 else

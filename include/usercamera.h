@@ -48,7 +48,7 @@ class UserCamera
     enum m_taaKeyIndex {taa_W, taa_A, taa_S, taa_D, taa_Q, taa_E, taa_SPACE, taa_ESC, taa_LEFT, taa_RIGHT, taa_UP, taa_DOWN};
     glm::dvec2 m_mousePos;
     bool m_camMoved = true;
-    bool m_trackingActive = true;
+    bool m_trackingActive = false;
 };
 
 #endif

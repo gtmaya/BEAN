@@ -35,6 +35,11 @@ mapGrid = []
 emptySpaces = []
 foodSpaces = []
 hygieneSpaces = []
+trafficLightsA = []
+trafficLightsB = []
+trafficLightsC = []
+trafficLightsD = []
+
 x = 0
 y = 0
 for i in range(len(allPixels)):
@@ -48,13 +53,19 @@ for i in range(len(allPixels)):
     mapGrid.append(0)
     emptySpaces.append([x, y])
   if 128 <= allPixels[i][1]:
-    mapGrid.append(0)
     emptySpaces.append([x, y])
     foodSpaces.append([x, y])
   if 128 <= allPixels[i][2]:
-    mapGrid.append(0)
     emptySpaces.append([x, y])
     hygieneSpaces.append([x, y])
+  if allPixels[i][2] > 0 and allPixels[i][2] < 64:
+    trafficLightsA.append([x, y])
+  if allPixels[i][2] >= 64 and allPixels[i][2] < 128:
+    trafficLightsB.append([x, y])
+  if allPixels[i][2] >= 128 and allPixels[i][2] < 192:
+    trafficLightsC.append([x, y])
+  if allPixels[i][2] >= 192:
+    trafficLightsD.append([x, y])
 
 #Reshuffle data
 shuffleGrid = []
@@ -68,7 +79,7 @@ for secX in range(32):
 
 #Put data into map.h
 secNo = 0
-mapString = "#ifndef MAP_H\n#define MAP_H\n#include <array>\n#include <glm/vec2.hpp>\nstatic std::array<int,"+str(len(shuffleGrid))+">mapGrid={"
+mapString = "#ifndef MAP_H\n#define MAP_H\n#include <array>\n#include <vector>\n#include <glm/vec2.hpp>\nstatic std::array<int,"+str(len(shuffleGrid))+">mapGrid={"
 for i in range(len(allPixels)):
   secNo = i % 64
   if (i != 0 and secNo == 0):
@@ -103,6 +114,35 @@ mapString += "static std::array<bool, "+str(len(emptySpaces))+"> destinationTake
 for i in range(len(emptySpaces)):
   mapString += "false\n"
   if (i != len(emptySpaces) - 1):
+    mapString += ","
+mapString += "};\n"
+
+
+mapString += "static std::array<glm::ivec2, "+str(len(trafficLightsA))+"> trafficLightsA{\n"
+for i in range(len(trafficLightsA)):
+  mapString += "glm::ivec2("+str(trafficLightsA[i][0])+", "+str(trafficLightsA[i][1])+")\n"
+  if (i != len(trafficLightsA) - 1):
+    mapString += ","
+mapString += "};\n"
+
+mapString += "static std::array<glm::ivec2, "+str(len(trafficLightsB))+"> trafficLightsB{\n"
+for i in range(len(trafficLightsB)):
+  mapString += "glm::ivec2("+str(trafficLightsB[i][0])+", "+str(trafficLightsB[i][1])+")\n"
+  if (i != len(trafficLightsB) - 1):
+    mapString += ","
+mapString += "};\n"
+
+mapString += "static std::array<glm::ivec2, "+str(len(trafficLightsC))+"> trafficLightsC{\n"
+for i in range(len(trafficLightsC)):
+  mapString += "glm::ivec2("+str(trafficLightsC[i][0])+", "+str(trafficLightsC[i][1])+")\n"
+  if (i != len(trafficLightsC) - 1):
+    mapString += ","
+mapString += "};\n"
+
+mapString += "static std::array<glm::ivec2, "+str(len(trafficLightsD))+"> trafficLightsD{\n"
+for i in range(len(trafficLightsD)):
+  mapString += "glm::ivec2("+str(trafficLightsD[i][0])+", "+str(trafficLightsD[i][1])+")\n"
+  if (i != len(trafficLightsD) - 1):
     mapString += ","
 mapString += "};\n"
 

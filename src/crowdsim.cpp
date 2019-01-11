@@ -1,37 +1,78 @@
 #include "crowdsim.h"
 
 CrowdSim::CrowdSim() : m_arrPeeps (initPeeps())
-{}
+{
+  for (size_t i = 0; i < trafficLightsA.size(); i++)
+  {
+    int section = trafficLightsA[i].x / 8 + 32 * (trafficLightsA[i].y / 8);
+    m_lightSectionMap[0][section].push_back(trafficLightsA[i]);
+  }
+  for (size_t i = 0; i < trafficLightsB.size(); i++)
+  {
+    int section = trafficLightsB[i].x / 8 + 32 * (trafficLightsB[i].y / 8);
+    m_lightSectionMap[0][section].push_back(trafficLightsB[i]);
+  }
+  for (size_t i = 0; i < trafficLightsC.size(); i++)
+  {
+    int section = trafficLightsC[i].x / 8 + 32 * (trafficLightsC[i].y / 8);
+    m_lightSectionMap[0][section].push_back(trafficLightsC[i]);
+  }
+  for (size_t i = 0; i < trafficLightsD.size(); i++)
+  {
+    int section = trafficLightsD[i].x / 8 + 32 * (trafficLightsD[i].y / 8);
+    m_lightSectionMap[0][section].push_back(trafficLightsD[i]);
+  }
+}
 
-std::array<Peep, CrowdSim::numPeeps> CrowdSim::getPeeps() const
+std::array<Peep*, CrowdSim::numPeeps> CrowdSim::getPeeps() const
 {
   return m_arrPeeps;
 }
 
-std::array<Peep, CrowdSim::numPeeps> CrowdSim::initPeeps()
+std::array<Peep*, CrowdSim::numPeeps> CrowdSim::initPeeps()
 {
-  std::array<Peep, numPeeps> peeps;
+  std::array<Peep*, numPeeps> peeps;
   for (size_t i = 0; i < numPeeps; i++)
   {
-    peeps[i] = Peep();
+    static int index;
+    const static size_t numEmptySpaces = emptySpaces.size();
+    Peep* pFriend = nullptr;
+    if ((int(float(std::rand()) / float(RAND_MAX) * 10)) % 10 == 0 && i != 0)
+    {
+      if (index != numEmptySpaces - 1) {index++;}
+      else                             {index--;}
+      pFriend = peeps[i - 1];
+    }
+    else
+    {
+      index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);
+    }
+    glm::vec2 position = emptySpaces[index];
+    peeps[i] = new Peep(position, pFriend);
   }
   return peeps;
 }
 
-glm::ivec2 CrowdSim::getRandomPoint(int need)
+glm::ivec2 CrowdSim::getRandomPoint(Peep* peep)
 {
-  size_t numEmptySpaces = emptySpaces.size();
-  int index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);
-  while (destinationTaken[index]) {index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);}
-  destinationTaken[index] = true;
-  if (need == 2) {return foodSpaces[index];}
-  else if (need == 3) {return hygieneSpaces[index];}
-//  return {254.f, 1.f};
+  if (peep->getFriend() == nullptr)
+  {
+    int need = peep->getNeediestNeed();
+    size_t numEmptySpaces = emptySpaces.size();
+    int index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);
+    while (destinationTaken[index]) {index = int((float(std::rand()) / float(RAND_MAX)) * numEmptySpaces);}
+//    destinationTaken[index] = true;
+    if (need == 2) {return foodSpaces[index];}
+    else if (need == 3) {return hygieneSpaces[index];}
+  }
+  else
+  {
+    return peep->getFriend()->getGridPosition();
+  }
 }
 
 glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPosition, int currentIndex, int destIndex) const
 {
-  glm::ivec2 currentLocaLTile = {currentIndex % 8 + (8 * (section % 32)), (currentIndex / 8) + ((section / 32) * 8)};
   pathStorage::singleFlow flow = m_paths.allFlows[section][destIndex];
   glm::vec2 distFromTileCentre {fmod(currentPosition.x, 1.f), fmod(currentPosition.y, 1.f)};
   distFromTileCentre.x -= 0.5f;
@@ -49,6 +90,8 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
       {
         rightSample.x = -1.f * distFromTileCentre.x;
         rightSample.y = -1.f * distFromTileCentre.y;
+        if (std::abs(rightSample.x) > std::abs(rightSample.y)) {rightSample.y = 0.f;}
+        else {rightSample.x = 0.f;}
         rightSample = glm::normalize(rightSample);
         rightSample *= 100.f;
       }
@@ -63,6 +106,8 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
         {
           topSample.x = -1.f * distFromTileCentre.x;
           topSample.y = -1.f * distFromTileCentre.y;
+          if (std::abs(topSample.x) > std::abs(topSample.y)) {topSample.y = 0.f;}
+          else {topSample.x = 0.f;}
           topSample = glm::normalize(topSample);
           topSample *= 100.f;
         }
@@ -81,6 +126,8 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
         {
           bottomSample.x = -1.f * distFromTileCentre.x;
           bottomSample.y = -1.f * distFromTileCentre.y;
+          if (std::abs(bottomSample.x) > std::abs(bottomSample.y)) {bottomSample.y = 0.f;}
+          else {bottomSample.x = 0.f;}
           bottomSample = glm::normalize(bottomSample);
           bottomSample *= 100.f;
         }
@@ -100,6 +147,8 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
       {
         leftSample.x = -1.f * distFromTileCentre.x;
         leftSample.y = -1.f * distFromTileCentre.y;
+        if (std::abs(leftSample.x) > std::abs(leftSample.y)) {leftSample.y = 0.f;}
+        else {leftSample.x = 0.f;}
         leftSample = glm::normalize(leftSample);
         leftSample *= 100.f;
       }
@@ -114,6 +163,8 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
         {
           topSample.x = -1.f * distFromTileCentre.x;
           topSample.y = -1.f * distFromTileCentre.y;
+          if (std::abs(topSample.x) > std::abs(topSample.y)) {topSample.y = 0.f;}
+          else {topSample.x = 0.f;}
           topSample = glm::normalize(topSample);
           topSample *= 100.f;
         }
@@ -132,6 +183,8 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
         {
           bottomSample.x = -1.f * distFromTileCentre.x;
           bottomSample.y = -1.f * distFromTileCentre.y;
+          if (std::abs(bottomSample.x) > std::abs(bottomSample.y)) {bottomSample.y = 0.f;}
+          else {bottomSample.x = 0.f;}
           bottomSample = glm::normalize(bottomSample);
           bottomSample *= 100.f;
         }
@@ -146,20 +199,74 @@ glm::vec2 CrowdSim::interpolateFlowVelocity(int section, glm::vec2 currentPositi
 
 void CrowdSim::update()
 {
+  m_lightSetABUpdates -= int((float(std::rand()) / float(RAND_MAX)) * 9.f) + 1;
+  m_lightSetCDUpdates -= int((float(std::rand()) / float(RAND_MAX)) * 9.f) + 1;
+  if (m_lightSetABUpdates <= 0)
+  {
+    m_lightSetAActive = !m_lightSetAActive;
+    m_lightSetBActive = !m_lightSetBActive;
+    m_lightSetABUpdates = 600;
+  }
+  if (m_lightSetCDUpdates <= 0)
+  {
+    m_lightSetCActive = !m_lightSetCActive;
+    m_lightSetDActive = !m_lightSetDActive;
+    m_lightSetCDUpdates = 600;
+  }
   for (int i = 0; i < 1024; i++)
   {
     for (auto &p1 : m_peepSectionMap[i])
     {
-//      if (p1->isDone()) {continue;}
-//      std::cout<<"There are "<<m_peepSectionMap[i].size()<<" peeps here."<<'\n';
+      for (int j = 0; j < 4; j++)
+      {
+        for (auto &lightPos : m_lightSectionMap[j][p1->getCurrentSection()])
+        {
+          if (p1->getGridPosition() == lightPos)
+          {
+            switch (j)
+            {
+              case 0:
+              {
+                if (m_lightSetAActive) {p1->setWaitingLight(false); j = 5; break;}
+                else                   {p1->setWaitingLight(true); j = 5; break;}
+              }
+              case 1:
+              {
+                if (m_lightSetBActive) {p1->setWaitingLight(false); j = 5; break;}
+                else                   {p1->setWaitingLight(true); j = 5; break;}
+              }
+              case 2:
+              {
+                if (m_lightSetCActive) {p1->setWaitingLight(false); j = 5; break;}
+                else                   {p1->setWaitingLight(true); j = 5; break;}
+              }
+              case 3:
+              {
+                if (m_lightSetDActive) {p1->setWaitingLight(false); j = 5; break;}
+                else                   {p1->setWaitingLight(true); j = 5; break;}
+              }
+            }
+          }
+        }
+      }
       for (auto &p2 : m_peepSectionMap[i])
       {
         if (p1 == p2) {continue;}
         glm::vec2 dVec = p1->getPosition() - p2->getPosition();
-//        std::cout<<"dVec = "<<glm::to_string(dVec);
-//        std::cout<<"length = "<<glm::length(dVec)<<'\n';
         float avoidance;
-        if (glm::length(dVec) > 1.5f)
+        float exponentCoefficient = 2.f;
+        if (p1->getFriend() == p2 || p1->getFriend() == p2->getFriend()) {exponentCoefficient = 1.f;}
+        else
+        {
+          for (auto &f : p1->getFollowers())
+          {
+            if (f == p2)
+            {
+              exponentCoefficient = 1.f;
+            }
+          }
+        }
+        if (glm::length(dVec) > 1.5f * (exponentCoefficient / 2.f))
         {
           avoidance = 0.f;
         }
@@ -167,13 +274,12 @@ void CrowdSim::update()
         {
           avoidance = std::pow(0.5f, glm::length(dVec) * 2.f);
         }
-//        std::cout<<"avoidance = "<<avoidance<<'\n';
         if (avoidance != 0.f)
         {
           if (glm::length(dVec) > 0.001f)
           {
             dVec = glm::normalize(dVec);
-            p1->setDirection(avoidance * dVec);
+            p1->setDirection(avoidance * dVec, true);
           }
         }
       }
@@ -181,44 +287,37 @@ void CrowdSim::update()
   }
   for (size_t i = 0; i < numPeeps; i++)
   {
-//    if (m_arrPeeps[i].isDone()) {continue;}
-    if (m_arrPeeps[i].containerIsDirty())
+    if (m_arrPeeps[i]->containerIsDirty())
     {
-      for (size_t j = 0; j < m_arrPeeps[i].getOldContainers().size(); j++)
+      for (size_t j = 0; j < m_arrPeeps[i]->getOldContainers().size(); j++)
       {
-        std::vector<Peep*>* section = &m_peepSectionMap[m_arrPeeps[i].getOldContainers()[j]];
-        section->erase(std::remove(section->begin(), section->end(), &m_arrPeeps[i]), section->end());
+        std::vector<Peep*>* section = &m_peepSectionMap[m_arrPeeps[i]->getOldContainers()[j]];
+        section->erase(std::remove(section->begin(), section->end(), m_arrPeeps[i]), section->end());
       }
-      for (size_t j = 0; j < m_arrPeeps[i].getNewContainers().size(); j++)
+      for (size_t j = 0; j < m_arrPeeps[i]->getNewContainers().size(); j++)
       {
-        std::vector<Peep*>* section = &m_peepSectionMap[m_arrPeeps[i].getNewContainers()[j]];
-        section->push_back(&m_arrPeeps[i]);
+        std::vector<Peep*>* section = &m_peepSectionMap[m_arrPeeps[i]->getNewContainers()[j]];
+        section->push_back(m_arrPeeps[i]);
       }
-      m_arrPeeps[i].makeContainerClean();
+      m_arrPeeps[i]->makeContainerClean();
     }
-    if (m_arrPeeps[i].needsPath())
+    if (m_arrPeeps[i]->needsPath())
     {
-      glm::ivec2 dest = getRandomPoint(m_arrPeeps[i].getNeediestNeed());
-      Path genPath = getPath(m_arrPeeps[i].getGridPosition(), dest);
-      while (genPath.sections[0] == INT_MAX) {genPath = getPath(m_arrPeeps[i].getGridPosition(), dest);}
-      m_arrPeeps[i].setPath(genPath, dest, m_arrPeeps[i].getNeediestNeed());
+      glm::ivec2 dest = getRandomPoint(m_arrPeeps[i]);
+      Path genPath = getPath(m_arrPeeps[i]->getGridPosition(), dest);
+      while (genPath.sections[0] == INT_MAX) {dest = getRandomPoint(m_arrPeeps[i]); genPath = getPath(m_arrPeeps[i]->getGridPosition(), dest);}
+      m_arrPeeps[i]->setPath(genPath, dest, m_arrPeeps[i]->getNeediestNeed());
     }
-    if (!m_arrPeeps[i].isTraversingJunction())
+    if (!m_arrPeeps[i]->isTraversingJunction() && !m_arrPeeps[i]->isWaiting())
     {
-//    std::cout<<"gridPosition = "<<glm::to_string(m_arrPeeps[i].getGridPosition())<<'\n';
-      glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i].getCurrentSection(), m_arrPeeps[i].getPosition(), convertVec2ToIndex(m_arrPeeps[i].getGridPosition()), m_arrPeeps[i].getLocalGoalIndex());
-//      std::cout<<"x = "<<glm::to_string(x)<<" length = "<<glm::length(x)<<'\n';
-//      if (glm::length(x) > 1.f) {x = glm::normalize(x);}
-      if (glm::length(x) > 0.001f) {m_arrPeeps[i].setDirection(x);}
+      glm::vec2 x = interpolateFlowVelocity(m_arrPeeps[i]->getCurrentSection(), m_arrPeeps[i]->getPosition(), convertVec2ToIndex(m_arrPeeps[i]->getGridPosition()), m_arrPeeps[i]->getLocalGoalIndex());
+      if (glm::length(x) > 0.001f) {m_arrPeeps[i]->setDirection(x, false);}
     }
   }
   for (int i = 0; i < numPeeps; i++)
   {
-//    if (m_arrPeeps[i].isDone()) {continue;}
-    m_arrPeeps[i].update();
+    m_arrPeeps[i]->update();
   }
-//  std::cout<<"\n\n\n\n";
-//  std::cout<<"Frame end\n\n";
 }
 
 int CrowdSim::m_junctionCounter = 0;
@@ -243,7 +342,7 @@ void CrowdSim::spinDijkstra()
 {
   while (!m_gridRunning)
   {
-    nanosleep((const struct timespec[]){{0, 25000L}}, NULL);
+    nanosleep((const struct timespec[]){{0, 25000L}}, nullptr);
   }
   auto t1 = std::chrono::high_resolution_clock::now();
   auto t2 = std::chrono::high_resolution_clock::now();
@@ -295,49 +394,49 @@ void CrowdSim::spinDijkstra()
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⠂ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⠄ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⡀ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⢀ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⠠ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⠐ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rDijkstra ⠈ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")   "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_gridDone) {std::cout<<"\nDijkstra complete.\nCrunching paths...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
   }
 }
@@ -346,7 +445,7 @@ void CrowdSim::spinLinker()
 {
   while (!m_linkerRunning)
   {
-    nanosleep((const struct timespec[]){{0, 25000L}}, NULL);
+    nanosleep((const struct timespec[]){{0, 25000L}}, nullptr);
   }
   auto t1 = std::chrono::high_resolution_clock::now();
   auto t2 = std::chrono::high_resolution_clock::now();
@@ -398,49 +497,49 @@ void CrowdSim::spinLinker()
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⠂ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⠄ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⡀ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⢀ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⠠ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⠐ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
     std::cout << "\rLinker ⠈ (running for "<<std::setprecision(10)<< delta<< "s, "<<percent<<"% complete"<<std::setprecision(6)<<", time remaining: "<<tString<<")     "<<std::flush;
     for (size_t i = 0; i < 100; i++)
     {
       if (m_linkerDone) {std::cout<<"\nLinker complete.\nCrunching links...\n"<<std::flush; return;}
-      nanosleep((const struct timespec[]){{0, 1250000L}}, NULL);
+      nanosleep((const struct timespec[]){{0, 1250000L}}, nullptr);
     }
   }
 }
@@ -614,8 +713,6 @@ CrowdSim::pathStorage::singleFlow CrowdSim::generateFlow(std::vector<node> nodes
 
 void CrowdSim::getLinkerChain(int startJunction, int endJunction)
 {
-  static int temp = 0;
-  temp = 0;
 //  std::cout<<"m_paths.linker[endJunction][startJunction].dist = "<<m_paths.linker[endJunction][startJunction].dist<<'\n';
 //  std::cout<<"StartJunction  = "<<startJunction<<" endJunction = "<<endJunction<<'\n';
   pathStorage::linkerChain chain;
@@ -633,7 +730,6 @@ void CrowdSim::getLinkerChain(int startJunction, int endJunction)
   chain.insert(chain.begin(), &m_paths.linker[endJunction][endJunction]);
   for (size_t i = 0; i < chain.size() - 1; i++)
   {
-    int commonSection = INT_MAX;
     if (chain[i]->sectionA == chain[i + 1]->sectionA) {sections.push_back(chain[i]->sectionA); continue;}
     if (chain[i]->sectionA == chain[i + 1]->sectionB) {sections.push_back(chain[i]->sectionA); continue;}
     if (chain[i]->sectionB == chain[i + 1]->sectionA) {sections.push_back(chain[i]->sectionB); continue;}
@@ -812,7 +908,7 @@ void CrowdSim::generateLinkerMap()
   }
 }
 
-void CrowdSim::calculateRoutes(bool printFlag)
+void CrowdSim::calculateRoutes()
 {
   auto t1 = std::chrono::high_resolution_clock::now();
   m_totalMaps = 8 * 8 * 1024;

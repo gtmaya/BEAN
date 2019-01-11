@@ -32,7 +32,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void key_callback(GLFWwindow* window, int key, int /*scancode*/, int action, int mods)
 {
-  static bool curstate = true;
+  static bool curstate = false;
   // Escape exits the application
   if (action == GLFW_PRESS)
   {
@@ -58,31 +58,6 @@ void key_callback(GLFWwindow* window, int key, int /*scancode*/, int action, int
       {
         r_camera.reset();
         r_scene.resetTAA();
-        break;
-      }
-      case (GLFW_KEY_1):
-      {
-        r_scene.setAAMethod(RenderScene::taa);
-        break;
-      }
-      case (GLFW_KEY_2):
-      {
-        r_scene.setAAMethod(RenderScene::none);
-        break;
-      }
-      case (GLFW_KEY_3):
-      {
-        r_scene.setAAMethod(RenderScene::msaa);
-        break;
-      }
-      case (GLFW_KEY_KP_2):
-      {
-        r_scene.increaseFeedback(-0.01f);
-        break;
-      }
-      case (GLFW_KEY_KP_8):
-      {
-        r_scene.increaseFeedback(0.01f);
         break;
       }
       case (GLFW_KEY_P):
@@ -121,11 +96,7 @@ int main(int argc, char *argv[])
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
   int width = 1000; int height = 1000;
-  GLFWwindow* window = glfwCreateWindow(width,
-                                        height,
-                                        title.c_str(),
-                                        nullptr,
-                                        nullptr);
+  GLFWwindow* window = glfwCreateWindow(width, height, std::string("Crowd simulation for " + title).c_str(), nullptr, nullptr);
 
 
   if (window == nullptr)
@@ -137,14 +108,14 @@ int main(int argc, char *argv[])
   glfwSetKeyCallback(window, key_callback);
 
   // Disable the cursor for the FPS camera
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
   // Set the mouse move and click callback
   glfwSetCursorPosCallback(window, cursor_callback);
   glfwSetMouseButtonCallback(window, mouse_button_callback);
   glfwSetScrollCallback(window, scroll_callback);
 
-  r_scene.initGL();
+  r_scene.initGL(title.c_str());
   std::cout<<"\n\n\nControls:\n"
              "               forward   W\n"
              "            left/right A   S\n"
@@ -156,11 +127,6 @@ int main(int argc, char *argv[])
              "\n"
              "                  ENTER\n"
              "          reset camera position\n"
-             "              1 - Toggle AA\n"
-             "         2 - Reset AA accumulation\n"
-             "\n"
-             "        numpad 8 - increase feedback\n"
-             "        numpad 2 - decrease feedback\n"
              "\n"
              "\n";
 

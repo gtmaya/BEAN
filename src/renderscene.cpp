@@ -13,7 +13,7 @@ RenderScene::RenderScene() : m_width(1),
                              m_ratio(1.0f),
                              m_crowdSim (new CrowdSim)
 {
-  m_crowdSim->calculateRoutes(false);
+  m_crowdSim->calculateRoutes();
   m_startTime = std::chrono::high_resolution_clock::now();
   m_prevFrameTime = std::chrono::high_resolution_clock::now();
   float maxLightDist = 0;
@@ -41,18 +41,23 @@ void RenderScene::resizeGL(GLint _width, GLint _height) noexcept
   updateJitter();
 }
 
-void RenderScene::initGL() noexcept
+void RenderScene::initGL(std::string mapImage) noexcept
 {
   ngl::NGLInit::instance();
   glClearColor(0.8f, 0.8f, 0.8f, 1.f);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
-
+  std::string mapName;
+  for (auto &character : mapImage)
+  {
+    if (character == '.') {break;}
+    mapName.push_back(character);
+  }
   m_peepMesh = new ngl::Obj("models/peepmesh.obj");
   m_peepMesh->createVAO();
 
-  m_floorMesh = new ngl::Obj("models/floormesh.obj");
+  m_floorMesh = new ngl::Obj(std::string("models/") + mapName + std::string(".obj"));
   m_floorMesh->createVAO();
 
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
@@ -79,7 +84,7 @@ void RenderScene::initGL() noexcept
 
   shader->use("beckmannShader");
   GLuint shaderID = shader->getProgramID("beckmannShader");
-  initTexture(taa_floorTex, m_floorTex, "images/turdly.png");
+  initTexture(taa_floorTex, m_floorTex, std::string("images/" + mapImage).c_str());
 
   glUniform3fv(glGetUniformLocation(shaderID, "lightPos"),
                int(m_lightCol.size()),
@@ -293,8 +298,7 @@ void RenderScene::renderScene(size_t _activeAAFBO)
     glm::mat3 N;
     M = glm::mat4(1.f);
     //M = glm::rotate(M, glm::pi<float>() * 0.25f, {0.f, 1.f, 0.f});
-    glm::vec2 pos2D = obj.getPosition();
-    if (pos2D.x > 256.f || pos2D.y > 256.f || pos2D.x < 0.f || pos2D.y < 0.f) {std::cout<<"POSITION ERROR WHEN DRAWING\n";}
+    glm::vec2 pos2D = obj->getPosition();
     M = glm::translate(M, {pos2D.x, 0.f, pos2D.y});
     MV = m_view * M;
     MVP = m_VP * M;
@@ -313,17 +317,17 @@ void RenderScene::renderScene(size_t _activeAAFBO)
                        1,
                        true,
                        glm::value_ptr(N));
-    glUniform1f(glGetUniformLocation(shaderID, "roughness"), obj.getShaderProps()->m_roughness);
-    glUniform1f(glGetUniformLocation(shaderID, "metallic"), obj.getShaderProps()->m_metallic);
-    glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), obj.getShaderProps()->m_diffuseWeight);
-    glUniform1f(glGetUniformLocation(shaderID, "specAmount"), obj.getShaderProps()->m_specularWeight);
+    glUniform1f(glGetUniformLocation(shaderID, "roughness"), obj->getShaderProps()->m_roughness);
+    glUniform1f(glGetUniformLocation(shaderID, "metallic"), obj->getShaderProps()->m_metallic);
+    glUniform1f(glGetUniformLocation(shaderID, "diffAmount"), obj->getShaderProps()->m_diffuseWeight);
+    glUniform1f(glGetUniformLocation(shaderID, "specAmount"), obj->getShaderProps()->m_specularWeight);
     glUniform3fv(glGetUniformLocation(shaderID, "materialDiff"),
                  1,
-                 glm::value_ptr(obj.getShaderProps()->m_diffuseColour));
+                 glm::value_ptr(obj->getShaderProps()->m_diffuseColour));
     glUniform3fv(glGetUniformLocation(shaderID, "materialSpec"),
                  1,
-                 glm::value_ptr(obj.getShaderProps()->m_specularColour));
-    glUniform1f(glGetUniformLocation(shaderID, "alpha"), obj.getShaderProps()->m_alpha);
+                 glm::value_ptr(obj->getShaderProps()->m_specularColour));
+    glUniform1f(glGetUniformLocation(shaderID, "alpha"), obj->getShaderProps()->m_alpha);
     glUniform1i(glGetUniformLocation(shaderID, "hasDiffMap"), 0);
     m_peepMesh->draw();
   }
@@ -434,7 +438,7 @@ void RenderScene::initFBO(size_t _fboID, GLenum _textureA, GLenum _textureB)
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {std::cout<<"Help\n";}
+  if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {std::cout<<"This shouldn't appear (bug with Temporal Anti Aliasing)\n";}
 }
 
 void RenderScene::initTexture(const GLuint& texUnit, GLuint &texId, const char *filename)
@@ -465,7 +469,7 @@ void RenderScene::initTexture(const GLuint& texUnit, GLuint &texId, const char *
 
 void RenderScene::updateJitter()
 {
-  for (size_t i = 0; i < m_jitterVector.size(); i++){m_jitterVector[i] = m_sampleVector[i] * m_pixelSizeScreenSpace * 0.9f; /*std::cout<<glm::to_string(m_jitterVector[i])<<'\n';*/}
+  for (size_t i = 0; i < m_jitterVector.size(); i++){m_jitterVector[i] = m_sampleVector[i] * m_pixelSizeScreenSpace * 0.9f;}
 }
 
 void RenderScene::increaseFeedback(float _delta)
@@ -473,5 +477,4 @@ void RenderScene::increaseFeedback(float _delta)
   m_feedback += _delta;
   if (m_feedback > 1.f) {m_feedback = 1.f;}
   if (m_feedback < 0.f) {m_feedback = 0.f;}
-  std::cout<<"Keeping "<<m_feedback * 100.f<<"% of the current frame and "<<(1 - m_feedback) * 100.f<<"% of the previous frame\n";
 }
